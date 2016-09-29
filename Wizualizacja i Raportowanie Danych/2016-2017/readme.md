@@ -2,7 +2,6 @@
 
 ## Sylabus przedmiotu [LINK](http://esylabus.ue.poznan.pl/pl/II00S.23C.11156.16/rok/sylabus/21684?semester%5B0%5D=3&study_year=2012)
 
-
 1.	Wprowadzenie do technik prezentacji danych statystycznych 
 2.	Podstawowe typy wykresów stosowanych w analizie danych statystycznych 
 3.	Prezentacja danych jednowymiarowych (1) – dane jakościowe w pakiecie ggplot2
@@ -21,6 +20,7 @@
 
 Zalecana literatura:
 
++ Zbiór Esejów o wizualizacji danych http://biecek.pl/Eseje
 + Biecek, P., 2011, Przewodnik po pakiecie R, Oficyna Wydawnicza GIS, Wrocław (http://biecek.pl/Eseje)
 + Górecki, T., 2011, Podstawy statystyki z przykładami w R, Wydawnictwo btc, Legionowo.
 + Huff, D., (1954), How to lie with Statistics, Norton & Company, New York.
