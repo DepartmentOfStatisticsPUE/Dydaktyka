@@ -1,0 +1,29 @@
+---
+title: "Badanie studentów - opis zmiennych"
+author: "Maciej Beręsewicz"
+date: "30 September 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = T)
+library(sjPlot)
+library(dplyr)
+bkl <- rio::import('../datasets/BKL_studenci_1_4ed.sav')
+
+description <- sjPlot::view_df(
+  bkl,
+  show.values = F,
+  show.labels = F,
+  use.viewer = F,
+  no.output = T
+)
+```
+
+```{r echo=F,results='asis'}
+cat(description$knitr)
+```
+
+
