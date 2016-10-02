@@ -1,0 +1,280 @@
+---
+title: "Podstawowe wykresy"
+author: "Maciej Beręsewicz"
+date: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = T)
+```
+
+# Materiał przedstawia podstawowe wykresy wykorzystywane w wizualizacji danych
+
+Materiały na zajęcia poświęcone podstawowym wykresom statystycznym, które wykorzystywane są do poglądowej analizy danych (ang. *exploratory data analysis*, EDA). W ramach zajęć przedstawione i wyjaśnione zostaną następujące wykresy:
+
+* kołowy (ciastkowy) -- ang. *pie chart*
+* słupkowy (paskowy) -- ang. *bar plot*
+* mozaikowy -- ang. *mosaic plot*
+* rozrzutu -- ang. *scatter plot*
+* histogram -- ang. *histogram*
+* gęstości -- ang. *density plot*
+* pudełkowy (ramka wąsy) -- ang. *boxplot*
+* skrzypcowy -- ang. *violin plot*
+
+## Wczytanie danych dotyczących badania studentów
+
+```{r wczytanie-danych}
+bkl <- rio::import(file = '../datasets/BKL_studenci_1_4ed.sav')
+```
+
+
+## Wykresy jednowymiarowe -- cechy jakościowe
+
+### Wykres kołowy
+
+Jednym z podstawowych wykresów do prezentacji danych na skali **nominalnej** jest wykres kołowy. Stosujemy go w przypadku gdy badana zmienna przyjmuje nie dużą liczbę wariantów (np. 4-6). W **R** jest funkcja *pie*, która służy do tworzenia tego typu wykresu. Składnię można znaleźć poniżej.
+
+```{r piesyntax,eval=FALSE}
+pie(x, labels = names(x), edges = 200, radius = 0.8,
+    clockwise = FALSE, init.angle = if(clockwise) 90 else 0,
+    density = NULL, angle = 45, col = NULL, border = NULL,
+    lty = NULL, main = NULL, ...)
+```
+
+Stworzymy wykres kołowy przedstawiający liczebność reprezentantów w próbie według typu uczelni (`kod_A1_1min`). Polecam najpierw utworzyć tabelę, a następnie na jej podstawie stworzyć wykres kołowy. 
+
+```{r pieexamp1}
+uczelnie <- table(bkl$kod_A1_1min)
+pie(uczelnie)
+```
+
+W przeciwnym wypadku tworzenie wykresu będzie trwało bardzo długo lub w ogóle się nie wykona. Jeżeli chcemy zmienić wygląd wykresu możemy skorzystać z dodatkowych opcji. Kolory ustawiamy podając wektor wartości w argumencie col. W tym przypadku korzystamy z funkcji brewer.pal z pakietu RColorBrewer (inny zapis: RColorBrewer::brewer.pal).
+
+```{r pieexamp2}
+etykiety <- attr(bkl$kod_A1_1min,'labels')
+pie(x = uczelnie,
+    labels = names(etykiety),
+    clockwise =  T)
+```
+
+Wykresy kołowe nie są polecane do wizualizacji danych.
+
+### Wykres słupkowy (paskowy)
+
+Kolejnym rozpatrywanym typem wykresu jest wykres słupkowy (nazywany również paskowym). Stosujemy go to przedstawiania danych jedno lub dwuwymiarowych na skali nominalnej oraz porządkowej. W **R** znaleźć możemy procedurę *barplot*, która służy do rysowania wykresów słupkowych.
+
+Składnia funkcji jest następująca,
+
+```{r barsynt,eval=F}
+barplot(height, width = 1, space = NULL,
+        names.arg = NULL, legend.text = NULL, beside = FALSE,
+        horiz = FALSE, density = NULL, angle = 45,
+        col = NULL, border = par("fg"),
+        main = NULL, sub = NULL, xlab = NULL, ylab = NULL,
+        xlim = NULL, ylim = NULL, xpd = TRUE, log = "",
+        axes = TRUE, axisnames = TRUE,
+        cex.axis = par("cex.axis"), cex.names = par("cex.axis"),
+        inside = TRUE, plot = TRUE, axis.lty = 0, offset = 0,
+        add = FALSE, args.legend = NULL, ...)
+```
+
+
+Najważniejszym argumentem jest parametr *weight* określającym wysokość słupków. Argument *beside* mówi o tym czy wartości będą przedstawione w postaci słupków stack czy obok sobie. Natomiast *horiz* wskazuje położenie słupków.
+
+Przedstawimy teraz dane dotyczące liczby reprezentantów według typu uczelni.
+
+```{r barplotexamp1}
+barplot(uczelnie)
+```
+
+Zmienimy teraz kilka podstawowych opcji.
+
+```{r barplotexamp2}
+### sortujemy wartosci
+uczelnie <- sort(uczelnie, decreasing = F)
+
+### tworzymy wykres
+barplot(uczelnie,
+        horiz=T,
+        col='red',
+        cex.axis=1,
+        cex.names=.8)
+```
+
+
+
+## Wykresy jednowymiarowe -- cechy ciągłe
+
+Wygenerujemy 1000 liczb pseudo-losowych z $N(5,2)$.
+
+```{r dane-do-histogramu}
+set.seed(123)
+dane <- rnorm(n = 1000, mean = 5, sd = 2)
+```
+
+
+### Histogram
+
+Podstawowym wykresem do prezentacji rozkładów zmiennych jest histogram. Różni się od wykresu paskowego tym, że poszczególne słupki przylegają do siebie. Wynika to z tego, że zanim histogram jest tworzony dane są dzielone na określoną liczbę przedziałów. Do tworzenia histogramów w  **R**  służy funkcja **hist**, której składnia przedstawiona jest poniżej. 
+
+
+```{r histsynt,eval=FALSE}
+hist(x, breaks = "Sturges",
+     freq = NULL, probability = !freq,
+     include.lowest = TRUE, right = TRUE,
+     density = NULL, angle = 45, col = NULL, border = NULL,
+     main = paste("Histogram of" , xname),
+     xlim = range(breaks), ylim = NULL,
+     xlab = xname, ylab,
+     axes = TRUE, plot = TRUE, labels = FALSE,
+     nclass = NULL, warn.unused = TRUE, ...)
+```
+
+
+```{r histogram1}
+hist(dane)
+```
+
+Histogram może przedstawiać zarówno częstości występowania poszczególnych przedziałów, jak i prawdopodobieństwo wystąpienia (opcja *freq*). *Breaks* określa liczbę tworzonych przedziałów (powinny być tak utworzone aby nie zawierały pustych przedziałów). W **R** są możemy wybrać między trzeba metodami tworzenia przedziałów:
+
+* Struges - wzór: $k+log_2n$
+* Scott - wzór: $3.5sn^{-1/3}$
+* FD (Freedman i Diaconis (1981)) - wzór: $2Rn^{-1/3}$
+
+gdzie $n$ to wielkość próby, $s$ to odchylenie standardowe, $R$ to rozstęp międzykwartylowy ($Q_3-Q_1$).
+
+
+Utwórzmy histogram wykorzystując te trzy miary i spójrzmy na różnice
+
+```{r histograms-different-classes,fig.keep='all'}
+par(mfrow = c(2, 2))
+hist(dane, breaks = 'sturges', main = "Metoda Struges'a")
+hist(dane, breaks = 'scott', main = "Metoda Scotta'a")
+hist(dane, breaks = 'fd', main = "Metoda Freedman'a-Diaconis'a")
+par(mfrow = c(1, 1))
+```
+
+Proszę zwrócić uwagę, że metoda Scotta oraz Friedmana-Diaconis'a tworzy większą liczbę przedziałów, przez co może wpływać na czytelność danych. Rozkład badanej cechy charakteryzuje się asymetrią prawostronną oznacza to, że w zbiorze danych występują wagi ekstremalne (jak na zachowywanie struktury przez tzw. wagi analityczne).
+
+Histogram stosujemy do prezentacji danych jednowymiarowych.
+
+O czym musimy jeszcze pamiętać? 
+
+* częstości (`freq`) czy prawdopodobieństwo (`probability`),
+* czy wartości skrajne (najmniejsze, największe) mają być włączone (`include.lowest`),
+* czy przedziały mają być zamknięte prawostronnie (`right`) -- `(a,b]` czy `[a,b)`
+
+
+### Wykres gęstości
+
+W kolejnym podpunkcie omówimy wizualizację pewnej metody statystycznej, którą jest wykres gęstości. Opiera się ona na jądrowej estymacji parametrów rozkładu badanej zmiennej. Co to oznacza? Na podstawie danych estymowane są parametry rozkładu zmiennej tak aby móc przedstawić wykres gęstości. Wykorzystujemy tę miarę w kilku celach:
+
+* wizualnej weryfikacji zgodności z zadanym rozkładem
+* wizualizacji zmiany rozkładów badanej cechy w czasie
+
+W **R** najpierw musimy zastosować funkcję **density**, a następnie jej wynik wywołać funkcją plot.
+
+
+
+```{r densitysynt,eval=FALSE}
+density(x, bw = "nrd0", adjust = 1,
+        kernel = c("gaussian", "epanechnikov", "rectangular",
+                   "triangular", "biweight",
+                   "cosine", "optcosine"),
+        weights = NULL, window = kernel, width,
+        give.Rkern = FALSE,
+        n = 512, from, to, cut = 3, na.rm = FALSE, ...)
+```
+
+Natomiast do wyboru dane są następujące jądra:
+
+a) gausowskie
+b) Epanecznikowa
+c) kwadratowe
+d) trójkątne
+e) biweight
+f) cosinus
+g) optcosine
+
+```{r}
+plot(density(dane, kernel = 'g'), main = 'Wykres gęstości',
+     sub='Czarny - gaussowski, Czerwony - Epanecznikowa, Niebieski - trójkątny', 'Zółty - biweight')
+lines(density(dane, kernel = 'e'), col = 'red')
+lines(density(dane, kernel = 'r'), col = 'blue')
+lines(density(dane, kernel = 'biweight'), col = 'yellow')
+```
+
+
+### Boxplot
+
+Kolejnym wykresem, który służy do przedstawiania rozkładu zmiennej jest wykres pudełkowy (ang. *boxplot*) inaczej ramka wąsy (ang. *box-and-whisker*). W podstawowym **R** służy do tego funkcja **boxplot**. Wykres wykorzystujemy głównie do porównań rozkładów zmiennych wg grup (wstępnej weryfikacji o różnicy średnich/rozkładów) oraz detekcji wartości odstających. W statystyce często wykorzystywany jest do prezentacji wariancji estymatorów oszacowanej np. metodą bootstrap.
+
+
+```{r boxplot}
+boxplot(dane)
+```
+
+
+Co ważne, procedura generuje również wyniki liczbowe, które możemy przypisać do obiektu. Możemy zdiagnozować w ten sposób, które obserwacje są odstające i się im przyjrzeć. Opcja *plot* wskazuje, że chcemy otrzymać tylko statystyki, bez tworzenia wykresu (np. *out* zawiera informacje o wartościach odstających)
+
+
+```{r boxplot dane}
+wynik <- boxplot(dane,plot = F)
+str(wynik,1)
+```
+
+
+Wykresy pudełkowe wykorzystujemy do porównania rozkładów jednej zmiennej według grup. Jako przykład weźmiemy dane o samochodach i załóżmy, że chcemy porównać rozkład czasu na 1/4 mili (`qsec`) samochodów z automatyczną (`am == 1`) i manualną skrzynią biegów (`am == 0`)
+
+```{r boxplot-porownanie}
+data(mtcars)
+boxplot(qsec ~ am, data = mtcars) ## zapisujemy w postaci formuły y ~ grupa
+```
+
+
+## Wykresy dwuwymiarowe
+
+### Wykres rozrzutu -- scatterplot
+
+Wykres rozrzutu jest prawdopodobnie najpopularniejszym sposobem przedstawiania danych na skali ilorazowej (ciągłej). Można go stosować do wizualizacji:
+
+* zależności między dwiema zmiennymi,
+* detekcji wartości odstających,
+* diagnostyka modeli,
+* prezentacji zmiany między dwoma badanymi okresami,
+* prezentacji wyników analiz wielowymiarowych (np. analiza głównych składowych, analiza korespondencji),
+* i wiele wiele innych (np. Marketing Maps )
+
+W podstawowym **R** możemy wykorzystać w tym celu funkcję plot.
+
+Najniższa pensja, za jaką podjąłbym(-ęłabym) dziś tę pracę, to (`D10_1`) vs Pensja, którą uznał(a)bym dziś za w miarę zadowalającą, to (`D10_2`)
+
+```{r}
+plot(bkl$D10_1,
+     bkl$D10_2)
+```
+
+Czasem wykresy nie wyglądają tak, jakbyśmy oczekiwali...s
+
+```{r}
+summary(bkl$D10_1)
+```
+
+```{r}
+plot(bkl$D10_1,
+     bkl$D10_2,
+     xlim = c(0,1e4),
+     ylim = c(0,1e4))
+```
+
+Dlaczego tak jest? 
+
+```{r}
+barplot(table(bkl$D10_1))
+```
+
+
+
+## Wykresy wielowymiarowe
