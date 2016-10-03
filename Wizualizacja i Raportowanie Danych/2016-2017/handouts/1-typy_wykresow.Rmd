@@ -1,8 +1,12 @@
 ---
-title: "Podstawowe wykresy"
+title: "WIRDS 1 -- Podstawowe wykresy"
 author: "Maciej Beręsewicz"
 date: ""
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
+    number_sections: yes
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -10,25 +14,32 @@ knitr::opts_chunk$set(echo = TRUE,
                       cache = T)
 ```
 
-# Materiał przedstawia podstawowe wykresy wykorzystywane w wizualizacji danych
+# Słowo wstępu
 
 Materiały na zajęcia poświęcone podstawowym wykresom statystycznym, które wykorzystywane są do poglądowej analizy danych (ang. *exploratory data analysis*, EDA). W ramach zajęć przedstawione i wyjaśnione zostaną następujące wykresy:
 
-* kołowy (ciastkowy) -- ang. *pie chart*
-* słupkowy (paskowy) -- ang. *bar plot*
-* mozaikowy -- ang. *mosaic plot*
-* rozrzutu -- ang. *scatter plot*
-* histogram -- ang. *histogram*
-* gęstości -- ang. *density plot*
-* pudełkowy (ramka wąsy) -- ang. *boxplot*
-* skrzypcowy -- ang. *violin plot*
+* Zmienne na skali nominalnej i porządkowej (zm. jakościowe)
+    + kołowy (ciastkowy) -- ang. *pie chart*
+    + słupkowy (paskowy) -- ang. *bar plot*
+    + mozaikowy -- ang. *mosaic plot*
+* Zmienne na skali przedziałowej i ilorazowej (zm. ilościowe)
+    + rozrzutu -- ang. *scatter plot*
+    + histogram -- ang. *histogram*
+    + gęstości -- ang. *density plot*
+    + pudełkowy (ramka wąsy) -- ang. *boxplot*
+    + skrzypcowy -- ang. *violin plot*
 
 ## Wczytanie danych dotyczących badania studentów
 
+W przykładach będziemy wykorzystywali następujące dane:
+
+* `bkl` -- zbiór danych pochodzących z badania studentów z edycji 2010 i 2013. 
+* `apartments` -- zbiór dotyczący ceny ofertowe i transakcyjne mieszkań sprzedanych w latach 2007--2009. Zbiór dostępny jest w pakiecie `PBImisc`.
+
 ```{r wczytanie-danych}
 bkl <- rio::import(file = '../datasets/BKL_studenci_1_4ed.sav')
+data('apartments', package = 'PBImisc')
 ```
-
 
 ## Wykresy jednowymiarowe -- cechy jakościowe
 
@@ -43,7 +54,7 @@ pie(x, labels = names(x), edges = 200, radius = 0.8,
     lty = NULL, main = NULL, ...)
 ```
 
-Stworzymy wykres kołowy przedstawiający liczebność reprezentantów w próbie według typu uczelni (`kod_A1_1min`). Polecam najpierw utworzyć tabelę, a następnie na jej podstawie stworzyć wykres kołowy. 
+Stworzymy wykres kołowy przedstawiający liczebność `reprezentantów`^[Używamy pojęcia reprezentant ponieważ interesuje nas struktura próby, a nie struktura populacji. W przeciwnym wypadku powinniśmy użyć wag analitycznych (jeżeli interesują nas struktury) lub wag "populacyjnych" (jeżeli interesują nas wartości globalne)] w próbie według typu uczelni (`kod_A1_1min`). Polecam najpierw utworzyć tabelę, a następnie na jej podstawie stworzyć wykres kołowy. 
 
 ```{r pieexamp1}
 uczelnie <- table(bkl$kod_A1_1min)
@@ -59,7 +70,10 @@ pie(x = uczelnie,
     clockwise =  T)
 ```
 
-Wykresy kołowe nie są polecane do wizualizacji danych.
+**Wykresy kołowe nie są jednak polecane do wizualizacji danych**. Dlaczego?
+
+* zakłamują proporcje (na co patrzymy?)
+* nie nadają się do porównań.
 
 ### Wykres słupkowy (paskowy)
 
@@ -97,23 +111,52 @@ uczelnie <- sort(uczelnie, decreasing = F)
 
 ### tworzymy wykres
 barplot(uczelnie,
-        horiz=T,
-        col='red',
-        cex.axis=1,
-        cex.names=.8)
+        horiz = T,
+        col = 'red',
+        cex.axis = 1,
+        cex.names = .8)
 ```
 
+### Wykres mozaikowy
+
+Kolejnym wykresem jest wykres mozaikowy, który jest wizualizacją tabeli krzyżowej (ang. *cross table*). Wysokość i szerokość przedstawiają dwa wymiary danych (procenty wierszowe i kolumnowe). Możemy go bezpośrednio stosować na obiekcie klasy **xtabs** i **table**. Poniżej znajduje się składnia funkcji mosaic.
+
+```{r mozaicplotsynt,eval=F}
+mosaicplot(x, main = deparse(substitute(x)),
+           sub = NULL, xlab = NULL, ylab = NULL,
+           sort = NULL, off = NULL, dir = NULL,
+           color = NULL, shade = FALSE, margin = NULL,
+           cex.axis = 0.66, las = par("las"), border = NULL,
+           type = c("pearson", "deviance", "FT"), ...)
+```
+
+Zobaczymy czym różni się wywołanie funkcji **plot** na obiekcie klasy **xtabs**, a później jak zmieni się wykres jeżeli zastosujemy funkcję **mosaicplot** (nie ma różnicy). Sprawdzimy czy studenci wybraliby raz jeszcze daną uczelnię (`Czy dzisiaj, patrząc na wszystko z perspektywy czasu, zdecydował(a)by się Pan(i) raz jeszcze studiować na tej samej uczelni?` -- `C1`) wg Płci (`M1`).
+
+```{r tabela kontyngencji}
+edycja_c1 <- xtabs(~M1 + C1, data = bkl)
+plot(edycja_c1)
+```
+
+```{r mosaic plot }
+colnames(edycja_c1) <- names(attr(bkl$C1,'labels'))[4:7]
+rownames(edycja_c1) <- c('Kobieta','Mężczyzna')
+
+mosaicplot(edycja_c1,
+           main = 'Wykres mozaikowy',
+           margin = 2, ### określenie marginesów
+           color = RColorBrewer::brewer.pal(4, 'Blues'), ### określenie kolorów
+           cex.axis = 1,  ### czcionka osi
+           border = 'black', ### obramowanie
+           ylab = 'Czy dzisiaj, patrząc na wszystko z perspektywy czasu, zdecydował(a)by się Pan(i) \nraz jeszcze studiować na tej samej uczelni?', ### etykieta osi OX
+           xlab = 'Płeć', ### etykieta osi OY
+           off = 5) ### przetrzeń między elementami mozaiki
+```
+
+
+Oczywiście możemy ten wykres dopracować. Warto go stosować do prezentacji danych tabelarycznych ponieważ od razu możemy zauważyć zależności w tabeli. 
 
 
 ## Wykresy jednowymiarowe -- cechy ciągłe
-
-Wygenerujemy 1000 liczb pseudo-losowych z $N(5,2)$.
-
-```{r dane-do-histogramu}
-set.seed(123)
-dane <- rnorm(n = 1000, mean = 5, sd = 2)
-```
-
 
 ### Histogram
 
@@ -134,7 +177,8 @@ hist(x, breaks = "Sturges",
 
 
 ```{r histogram1}
-hist(dane)
+hist(apartments$transaction.price,
+     xlab = 'Cena transakcyjna')
 ```
 
 Histogram może przedstawiać zarówno częstości występowania poszczególnych przedziałów, jak i prawdopodobieństwo wystąpienia (opcja *freq*). *Breaks* określa liczbę tworzonych przedziałów (powinny być tak utworzone aby nie zawierały pustych przedziałów). W **R** są możemy wybrać między trzeba metodami tworzenia przedziałów:
@@ -150,13 +194,30 @@ Utwórzmy histogram wykorzystując te trzy miary i spójrzmy na różnice
 
 ```{r histograms-different-classes,fig.keep='all'}
 par(mfrow = c(2, 2))
-hist(dane, breaks = 'sturges', main = "Metoda Struges'a")
-hist(dane, breaks = 'scott', main = "Metoda Scotta'a")
-hist(dane, breaks = 'fd', main = "Metoda Freedman'a-Diaconis'a")
+hist(apartments$transaction.price, breaks = 'sturges', main = "Metoda Struges'a")
+hist(apartments$transaction.price, breaks = 'scott', main = "Metoda Scotta'a")
+hist(apartments$transaction.price, breaks = 'fd', main = "Metoda Freedman'a-Diaconis'a")
 par(mfrow = c(1, 1))
 ```
 
 Proszę zwrócić uwagę, że metoda Scotta oraz Friedmana-Diaconis'a tworzy większą liczbę przedziałów, przez co może wpływać na czytelność danych. Rozkład badanej cechy charakteryzuje się asymetrią prawostronną oznacza to, że w zbiorze danych występują wagi ekstremalne (jak na zachowywanie struktury przez tzw. wagi analityczne).
+
+Analiza histogramu dla danych zlogarytmowanych pozwoli nam wskazać czy ten sposób transformacji zbliża rozkład danej cechy do rozkładu normalnego.
+
+```{r histogram-log,fig.keep='all'}
+par(mfrow = c(1, 2))
+hist(x = log10(apartments$transaction.price),
+     xlab = 'Cena transakcyjna',
+     main = 'Histogram log_10(Cena transakcyjna)',
+     breaks = 'fd')
+hist(x = log(apartments$transaction.price),
+     xlab = 'Cena transakcyjna',
+     main = 'Histogram log_e(Cena transakcyjna)',
+     breaks = 'fd')
+par(mfrow = c(1, 1))
+```
+
+
 
 Histogram stosujemy do prezentacji danych jednowymiarowych.
 
@@ -175,8 +236,6 @@ W kolejnym podpunkcie omówimy wizualizację pewnej metody statystycznej, któr�
 * wizualizacji zmiany rozkładów badanej cechy w czasie
 
 W **R** najpierw musimy zastosować funkcję **density**, a następnie jej wynik wywołać funkcją plot.
-
-
 
 ```{r densitysynt,eval=FALSE}
 density(x, bw = "nrd0", adjust = 1,
@@ -199,11 +258,11 @@ f) cosinus
 g) optcosine
 
 ```{r}
-plot(density(dane, kernel = 'g'), main = 'Wykres gęstości',
+plot(density(apartments$transaction.price, kernel = 'g'), main = 'Wykres gęstości',
      sub='Czarny - gaussowski, Czerwony - Epanecznikowa, Niebieski - trójkątny', 'Zółty - biweight')
-lines(density(dane, kernel = 'e'), col = 'red')
-lines(density(dane, kernel = 'r'), col = 'blue')
-lines(density(dane, kernel = 'biweight'), col = 'yellow')
+lines(density(apartments$transaction.price, kernel = 'e'), col = 'red')
+lines(density(apartments$transaction.price, kernel = 'r'), col = 'blue')
+lines(density(apartments$transaction.price, kernel = 'biweight'), col = 'yellow')
 ```
 
 
@@ -213,25 +272,54 @@ Kolejnym wykresem, który służy do przedstawiania rozkładu zmiennej jest wykr
 
 
 ```{r boxplot}
-boxplot(dane)
+boxplot(apartments$transaction.price)
 ```
-
 
 Co ważne, procedura generuje również wyniki liczbowe, które możemy przypisać do obiektu. Możemy zdiagnozować w ten sposób, które obserwacje są odstające i się im przyjrzeć. Opcja *plot* wskazuje, że chcemy otrzymać tylko statystyki, bez tworzenia wykresu (np. *out* zawiera informacje o wartościach odstających)
 
-
 ```{r boxplot dane}
-wynik <- boxplot(dane,plot = F)
+wynik <- boxplot(apartments$transaction.price,plot = F)
 str(wynik,1)
 ```
 
-
-Wykresy pudełkowe wykorzystujemy do porównania rozkładów jednej zmiennej według grup. Jako przykład weźmiemy dane o samochodach i załóżmy, że chcemy porównać rozkład czasu na 1/4 mili (`qsec`) samochodów z automatyczną (`am == 1`) i manualną skrzynią biegów (`am == 0`)
+Wykresy pudełkowe wykorzystujemy do porównania rozkładów jednej zmiennej według grup. Załóżmy, że chcemy porównać rozkład ceny transakcyjnej mieszkania (`transaction.price`) według ich stanu określonego na skali nominalnej (`condition`)
 
 ```{r boxplot-porownanie}
-data(mtcars)
-boxplot(qsec ~ am, data = mtcars) ## zapisujemy w postaci formuły y ~ grupa
+boxplot(transaction.price ~ condition,
+        data = apartments,
+        cex.axis = .9) ## zapisujemy w postaci formuły y ~ grupa
 ```
+
+### Wykres skrzypcowy
+
+
+Wykres skrzypcowy jest połączeniem wykresu pudełkowego z wykresem gęstości. Ma tę przewagę nad wykresem boxplot, że możliwa jest jednoczesna obserwacja gęstości rozkładu, który może wskazać np. na multimodalność rozkładu badanej cechy. Załadujmy pakiet **vioplot**.
+
+```{r vioplot package, message=FALSE}
+library(vioplot)
+```
+
+Zobaczmy, jak wygląda wykres skrzypcowy.
+
+```{r violinplot 1}
+vioplot(apartments$transaction.price)
+```
+
+
+```{r violinplot by group}
+dane_do_wykresu <- split(apartments$transaction.price,
+                         apartments$condition)
+
+dane_do_wykresu <- lapply(dane_do_wykresu, na.omit)
+                         
+vioplot(dane_do_wykresu[[1]],
+        dane_do_wykresu[[2]],
+        dane_do_wykresu[[3]],
+        dane_do_wykresu[[4]],
+        dane_do_wykresu[[5]],
+        names = levels(apartments$condition))
+```
+
 
 
 ## Wykresy dwuwymiarowe
@@ -247,34 +335,27 @@ Wykres rozrzutu jest prawdopodobnie najpopularniejszym sposobem przedstawiania d
 * prezentacji wyników analiz wielowymiarowych (np. analiza głównych składowych, analiza korespondencji),
 * i wiele wiele innych (np. Marketing Maps )
 
-W podstawowym **R** możemy wykorzystać w tym celu funkcję plot.
+W podstawowym **R** możemy wykorzystać w tym celu funkcję plot. Sprawdźmy jaka jest zależnosć między ceną transakcyjna, a ofertową. Jakiej zależności powinniśmy się spodziewać? 
 
-Najniższa pensja, za jaką podjąłbym(-ęłabym) dziś tę pracę, to (`D10_1`) vs Pensja, którą uznał(a)bym dziś za w miarę zadowalającą, to (`D10_2`)
-
-```{r}
-plot(bkl$D10_1,
-     bkl$D10_2)
+```{r cena ofertowa vs cena transakcyjna}
+plot(x = apartments$offer.price,
+     y = apartments$transaction.price,
+     xlab = 'Cena ofertowa',
+     ylab = 'Cena transakcyjna')
 ```
 
-Czasem wykresy nie wyglądają tak, jakbyśmy oczekiwali...s
+Aby sprawdzić czy ceny są takie podobne możemy dodać do wykresu linię 45 stopni.
 
-```{r}
-summary(bkl$D10_1)
+```{r linia referencyjna}
+plot(x = apartments$offer.price,
+     y = apartments$transaction.price,
+     xlab = 'Cena ofertowa',
+     ylab = 'Cena transakcyjna')
+abline(a = 0, b = 1, col = 'red')
 ```
 
-```{r}
-plot(bkl$D10_1,
-     bkl$D10_2,
-     xlim = c(0,1e4),
-     ylim = c(0,1e4))
-```
+## Inne wykresy
 
-Dlaczego tak jest? 
-
-```{r}
-barplot(table(bkl$D10_1))
-```
-
-
-
-## Wykresy wielowymiarowe
+* wykres kwantyl-kwantyl
+* wykres radarowy
+* ...
