@@ -1,0 +1,28 @@
+---
+title: "Teoria - losowanie"
+author: "Maciej Beręsewicz"
+date: "11/8/2016"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## Teoria
+
+
+## Jak przeprowadzić losowanie?
+
+Pakiet `sampling` zawiera następujące funkcje:
+
+* `srswor` -- losowanie proste bez zwracania
+* `srswr` -- losowanie proste ze zwracaniem
+* `poisson` -- losowanie poissona
+* `systematic` losowanie systematyczne
+
+Losowania bardziej skomplikowane
+* `strata` -- losowanie warstwowe
+* `cluster` -- losowanie zespołowe
+* `mstage` -- losowanie wielostopniowe
