@@ -2,7 +2,7 @@
 
 library('htmlTable')
 library('knitr')
-library('rmarkdown')
+library('rmarkdown') ##
 
 dane <- data.frame(
   x = sample(1:2, size = 10, rep = T),
@@ -21,36 +21,41 @@ sink()
 
 #### 
 
+install.packages('rio')
+library(rio)
 
+dane <- import(file = 'Wizualizacja i Raportowanie Danych/2016-2017/datasets/KULT_2159_XPIV_20161108171949.xlsx',
+               which = 'DANE')
 
+head(dane)
 
-## Co będziemy robić na zajeciach?
-### cel wykorzystania wykresów punktowych / rozrzutu
-### analiza
-### przetworzenie zbioru do analizy wielowymiarowej z wykorzystaniem facet_wrap
+colnames(dane) <- c('kod','woj',
+                    'gry','os','rok',
+                    'wartosc','miara',
+                    'attr')
 
-library(PBImisc)
-library(ggplot2)
+head(dane)
 
-data(apartments)
+library('ggplot2')
+library('ggthemes')
 
-head(apartments)
-
-ggplot(data = apartments,
+ggplot(data = dane,
        aes(
-         x = surface,
-         y = transaction.price,
-         group = type,
-         colour = type
+         x = rok,
+         y = wartosc,
+         group = woj,
+         color = woj
        )) +
-  #geom_point() +
-  geom_smooth(method = 'loess', se = F) +
-  theme_bw()
+  geom_line() +
+  facet_wrap( ~ gry)
 
-ggplot(data = apartments,
-       aes(x = floor,
-           y = transaction.price)) +
-  geom_point() +
-  geom_smooth(method = 'loess') +
-  theme_bw()  +
-  scale_y_log10()
+ggplot(data = dane,
+       aes(
+         x = rok,
+         y = wartosc,
+         group = gry,
+         color = gry
+       )) +
+  geom_line() +
+  facet_wrap( ~ woj) +
+  theme_void()
