@@ -24,8 +24,7 @@ sink()
 install.packages('rio')
 library(rio)
 
-dane <- import(file = 'Wizualizacja i Raportowanie Danych/2016-2017/datasets/KULT_2159_XPIV_20161108171949.xlsx',
-               which = 'DANE')
+dane <- import(file = 'Wizualizacja i Raportowanie Danych/2016-2017/datasets/KULT_2159_XPIV_20161108171949.xlsx', which = 'DANE')
 
 head(dane)
 
