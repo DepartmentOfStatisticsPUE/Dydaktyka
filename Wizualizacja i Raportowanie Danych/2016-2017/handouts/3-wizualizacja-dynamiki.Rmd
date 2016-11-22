@@ -31,6 +31,9 @@ library('zoo') ## dodatkowe ustawienia osi dla szeregów czasowych
 library('dplyr') ## przetwarzanie danych
 library('tidyr') ## czyszczenie danych
 library('PBImisc') ## dane o nieruchomościach
+library('scales') ### dodatkowe skale
+#devtools::install_github('slowkow/ggrepel') ## developer version
+library('ggrepel') ## etykiety do punktów
 data("apartments")
 ```
 
@@ -143,5 +146,104 @@ ggplot(data = szereg,
 Teraz zajmiemy się porównaniem dwóch okresów na podstawie badania studentów w ramach Badania Kapitału Ludzkiego.
 
 
+```{r wczytanie danych}
+dane <- rio::import(file = '../datasets/BKL_studenci_1_4ed.sav')
+
+etyk_E1.1_4 <- attr(dane$E1.1_4,'labels')
+etyk_kod_A1_1min <- attr(dane$kod_A1_1min,'labels')
+
+porownanie <- dane %>%
+  select(edycja,kod_A1_1min,A2,waga_polaczona,E1.1_4) %>%
+  count(edycja,kod_A1_1min,E1.1_4,wt = waga_polaczona) %>%
+  na.omit() %>%
+  mutate(p= n / sum(n)) %>%
+  ungroup() %>%
+  mutate( edycja = ifelse(edycja == 0, '2011', '2013'),
+          kod_A1_1min = factor(x = kod_A1_1min,
+                               levels = as.numeric(etyk_kod_A1_1min),
+                               labels = names(etyk_kod_A1_1min)),
+          E1.1_4 = factor(x = E1.1_4,
+                          levels = as.numeric(etyk_E1.1_4),
+                          labels = names(etyk_E1.1_4))) 
+
+porownanie
+```
+
+
+Zobaczmy czy możemy zaobserwować jakieś zmiany w czasie
+
+```{r wykres slupkowy}
+porownanie %>%
+  ggplot(data = .,
+         aes(x = edycja,
+             y = p,
+             fill = E1.1_4)) +
+  geom_bar(stat = 'identity',
+           col = 'black') +
+  facet_wrap(~kod_A1_1min) +
+  theme_bw() +
+  xlab('Edycja badania') +
+  ylab('Udział odpowiedzi') +
+  scale_y_continuous(labels = percent)
+```
+
+
+Jak możemy przedstawić to inaczej? Spróbujmy wykres rozrzutu!
+
+## Wykres rozrzutu
+
+Dane do wykresu musimy trochę przetworzyć
+
+```{r dane do wykresu}
+por_wyk <- porownanie %>%
+  select(-n) %>%
+  spread(edycja, p)
+
+wykres_por <- por_wyk %>%
+  ggplot(data = .,
+         aes(x = `2011`,
+             y = `2013`,
+             group = E1.1_4)) +
+  geom_point() +
+  facet_wrap(~kod_A1_1min) +
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(labels = percent) +
+  theme_bw()
+
+wykres_por
+```
+
+Co możemy jeszcze zrobić z tym wykresem? 
+
+Dodajmy:
+
++ przekątną
++ etykiety do punktów
+
+```{r}
+wykres_por +
+  geom_abline(slope = 1, intercept = 0, col = 'red') +
+  geom_text_repel(aes(label = E1.1_4))
+```
+
+
+Co widzimy na tym wykresie?  Porównajmy teraz uczelnie dla poziomu `wysokiego` i `bardzo wysokiego`.
+ 
+```{r porownanie uczelni}
+por_wyk %>%
+  filter(E1.1_4 %in% c('wysoki','bardzo wysoki')) %>% 
+  ggplot(data = .,
+         aes(x = `2011`,
+             y = `2013`,
+             group = kod_A1_1min)) +
+  geom_point() +
+  facet_wrap(~ E1.1_4) +
+  scale_y_continuous(labels = percent) +
+  scale_x_continuous(labels = percent) +
+  theme_bw()  +
+  geom_abline(slope = 1, intercept = 0, col = 'red') +
+  geom_text_repel(aes(label = kod_A1_1min)) +
+  coord_fixed()
+```
 
 
