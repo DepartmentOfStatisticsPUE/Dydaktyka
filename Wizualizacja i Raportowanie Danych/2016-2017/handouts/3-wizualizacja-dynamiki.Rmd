@@ -1,0 +1,147 @@
+---
+title: "Wizualizacja dynamiki"
+author: "Maciej Beręsewicz"
+date: "11/22/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE, 
+                      warning = FALSE)
+```
+
+# Wstęp
+
+Na dzisiejszych zajęciach dowiemy się w jaki sposób wizualizować dynamikę oraz szeregi czasowe. W tym celu posłużymy się zbiorem `apartments` pochodzącym z pakietu `PBImisc` oraz danymi z Badania Kapitału Ludzkiego dotyczącego studentów.
+
+Do wizualizacji dynamiki możemy wykorzystać następujące typy wykresów:
+
+* punktowy -- w którym na osi X przedstawimy czas, na osi Y badaną zmienną; wykres ten możemy również wykorzystać do porównania dwóch okresów, gdzie na osi X znajdzie się okres T, a na osi Y okres  T+1.
+* liniowy -- wykres zbliżony do pierwszego typu przy czym punkty łączone są liniami. Wykres ten pozwoli nam również sprawdzić czy występuje autokorelacja w czasie.
+
+# Wizualizacja szeregu czasowego w R
+
+Zaczniemy od wczytania najważniejszych pakietów oraz danych
+
+```{r}
+library('ggplot2') ## wizualizacja danych
+library('forecast') ## wizualizacja i przetwarzanie szeregów czasowych
+library('zoo') ## dodatkowe ustawienia osi dla szeregów czasowych
+library('dplyr') ## przetwarzanie danych
+library('tidyr') ## czyszczenie danych
+library('PBImisc') ## dane o nieruchomościach
+data("apartments")
+```
+
+
+Przyjrzyjmy się pierwszym wierszom zbioru `apartments`
+
+```{r}
+head(apartments)
+```
+
+
+W pierwszej kolejności chcielibyśmy sprawdzić jak zmianiała się liczba obserwacji w badanym okresie.
+
+```{r}
+apartments %>%
+  count(year, month) %>%
+  ggplot(data = .,
+         aes(x = paste(year, month, sep = '-'),
+          y = n,
+          group = 1)) +
+  geom_line() +
+  theme_bw() +
+  xlab('Rok/miesiac') +
+  ylab('Liczba sprzedanych mieszkań')
+```
+
+Zobaczmy jak wygląda średnia cena mieszkań
+
+```{r}
+apartments %>%
+  group_by(year, month) %>%
+  summarise(m = sum(transaction.price)/sum(surface)) %>% 
+  ggplot(data = .,
+         aes(x = paste(year, month, sep = '-'),
+          y = m,
+          group = 1)) +
+  geom_line() +
+  theme_bw() +
+  xlab('Rok/miesiac') +
+  ylab('Przeciętna cena  / m2')
+```
+
+
+Na tym wykresie przedstawiliśmy wartości bezwzględne. Jeżeli chcielibyśmy przedstawić dynamikę powinniśmy odnieść się do okresu początkowego. Jak to zrobić? 
+
+```{r dynamika}
+apartments %>%
+  group_by(year, month) %>%
+  summarise(m = sum(transaction.price)/sum(surface)) %>%
+  ungroup() %>%
+  mutate(m_dyn = m/.$m[[1]] * 100) %>% 
+  ggplot(data = .,
+         aes(x = paste(year, month, sep = '-'),
+          y = m_dyn,
+          group = 1)) +
+  geom_line() +
+  theme_bw() +
+  xlab('Rok/miesiac (2007.06 = 100)') +
+  ylab('Zmiana przeciętnej ceny m2')
+```
+
+
+## Zapisanie danych w postaci szeregu czasowego
+
+Do tej pory nie korzystaliśmy z danych w postaci wektorów klasy `numeric` albo z obiektu typu `data.frame`. Teraz chcielibyśmy wykorzystać możliwości tworzenia szeregów czasowych z wykorzystaniem funkcji `ts` z pakietu stats. Jednakże aby utworzyć taki szereg musimy mieć informacje o wszystkich okresach.
+
+Czy we wszystkich okresach obserwujemy transakcje? Jak to zweryfikować? Możemy do tego użyć funkcji `complete` z pakietu `tidyr`.
+
+```{r czy mamy wszystkie obserwacje}
+szereg <- apartments %>%
+  group_by(year, month) %>%
+  summarise(m = sum(transaction.price)/sum(surface)) %>%
+  ungroup() %>%
+  complete(year, month)
+
+szereg %>%
+  spread(year, m)
+```
+
+```{r transformacja do obiektu typu ts}
+szereg_ts <- ts(data = szereg$m,
+                start = c(2007,1),
+                frequency = 12)
+print(szereg_ts)
+plot(szereg_ts)
+```
+
+
+Co zrobić jeżeli chcielibyśmy przedstawić dane z wykorzystaniem pakietu `ggplot2`?
+
+```{r}
+szereg <- szereg %>%
+  mutate(ym = paste(year, month, sep = '-'),
+         rok_mies = as.yearmon(ym))
+
+ggplot(data = szereg, 
+       aes(x = rok_mies,
+           y = m,
+           group = 1)) +
+  geom_line() +
+  scale_x_yearmon() +
+  xlab('Okres') +
+  ylab('Przeciętna cena m2') +
+  theme_bw()
+```
+
+
+# Porównanie dwóch okresów
+
+Teraz zajmiemy się porównaniem dwóch okresów na podstawie badania studentów w ramach Badania Kapitału Ludzkiego.
+
+
+
+

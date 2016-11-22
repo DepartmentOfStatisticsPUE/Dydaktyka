@@ -71,3 +71,9 @@ df <- svyby(
 df
 
 
+# wygeneruj populację -----------------------------------------------------
+
+### simPop -- generowanie populacji
+
+
+
