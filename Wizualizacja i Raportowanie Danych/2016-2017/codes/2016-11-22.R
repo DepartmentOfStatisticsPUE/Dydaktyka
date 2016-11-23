@@ -1,16 +1,20 @@
-library('PBImisc')
-library('dplyr')
-library('ggplot2')
-library('zoo')
-library('tidyr')
+library('PBImisc') ## zbiór apartments
+library('dplyr') ## do przetwarzania danych
+library('ggplot2') ## wizualizacja danych
+library('zoo') ## szeregi czasowe
+library('tidyr') ## czyszczenie danych 
 
+### wczytujemy zbiór danych
 data("apartments")
 head(apartments)
 
+## zliczamy ile nieruchomości zostało sprzedanych
 wynik <- count(apartments, year, month)
-wynik <- mutate(wynik,
-                ym = paste(year,month,sep = '-'))
 
+## dodajemy informacje o miesiącu
+wynik <- mutate(wynik, ym = paste(year,month,sep = '-'))
+
+## wizualizacja, ale czy poprawna?
 ggplot(data = wynik,
        aes(x = ym,
            y = n)) +
@@ -28,6 +32,7 @@ wynik <- mutate(wynik,
 
 head(wynik)
 
+## teraz wizualizacja jest poprawna!
 ggplot(data = wynik,
        aes(x = czas,
            y = n,
