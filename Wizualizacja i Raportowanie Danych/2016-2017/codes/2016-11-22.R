@@ -27,8 +27,7 @@ ggplot(data = wynik,
   geom_line()
 
 ## dodaję zmienną określającą czas
-wynik <- mutate(wynik,
-                czas = as.yearmon(ym))
+wynik <- mutate(wynik, czas = as.yearmon(ym))
 
 head(wynik)
 
