@@ -1,0 +1,154 @@
+---
+title: "Zestawienia tabelaryczne"
+author: "Maciej Beręsewicz"
+date: "11/23/2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Wprowadzenie
+
+Na zajeciach dowiemy się w jaki sposób tworzyć zestawienia tabelaryczne oraz jak zautomatyzować proces ich powstawania. Poznamy kilka przydatnych pakietów R, które umożliwią nam sprawne tworzenie tabel.
+
+Aby stworzyć zestawieniam możemy wykorzystać nastepujące pakiety
+
+```{r instalacja i wczytanie pakietów}
+# install.packages(c('sjPlot'))
+library(sjPlot) ## kolekcja przydatnych funkcji do tworzenia zestawień
+library(sjmisc)
+#library(tables) ## pakiet do tworzenia tabel
+library(htmlTable) ## pakiet do tworzenia tabel w HTML
+library(DT) ## pakiet do tworzenia tabel w JavaScript (DataTables)
+library(texreg) ## pakiet zawierający funkcje do raportowania wyników regresji
+```
+
+```{r wczytanie-przykladowych-danych}
+data(efc,package = 'sjmisc')
+```
+
+## Pakiet sjPlot
+
+W pakiecie `sjPlot` funkcje odpowiedzialne za tworzenie tabel rozpoczynają się od `sjt`. Poniżej przedstawię kilka przykładów
+
+### Tabela częstości
+
+```{r sjfreq-przyklad-1,eval=FALSE}
+sjt.frq(data = efc$e42dep)
+```
+
+```{r sjfreq-przyklad-1-rozw,echo=FALSE,results='asis'}
+d <- sjt.frq(data = efc$e42dep,
+             no.output = TRUE)
+cat(d$knitr)
+```
+
+### Tabela korelacji
+
+```{r sjfreq-przyklad-2,eval=FALSE}
+sjt.corr(data = efc[,c('c82cop1','c83cop2','c84cop3','c85cop4')],
+         corr.method = 'spearman',
+         triangle = 'both',
+         fade.ns = FALSE)
+```
+
+```{r sjfreq-przyklad-2-rozw,echo=FALSE,results='asis'}
+corr <- sjt.corr(data = efc[, c('c82cop1', 'c83cop2', 'c84cop3', 'c85cop4')],
+                 corr.method = 'spearman',
+                 triangle = 'both',
+                 fade.ns = FALSE,
+                 no.output = TRUE,
+                 na.deletion = 'listwise')
+cat(corr$knitr)
+```
+
+
+### Tabela raportu regresji liniowej
+
+```{r sjfreq-przyklad-3,eval=FALSE}
+# zmienne jakościowe jakościowa
+efc$c172code <- to_factor(efc$c172code)
+efc$e42dep <- to_factor(efc$e42dep)
+
+# pierwszy model
+fit1 <- lm(neg_c_7 ~ c160age + c172code + c161sex, data = efc)
+# drugi model
+fit2 <- lm(neg_c_7 ~ c160age + c172code + c161sex + c12hour, data = efc)
+# trzeci model
+fit3 <- lm(neg_c_7 ~ c160age + c172code + e42dep + tot_sc_e, data = efc)
+
+sjt.lm(fit1, fit2, fit3)
+```
+
+
+```{r sjfreq-przyklad-3-rozw,echo=FALSE,results='asis'}
+# zmienne jakościowe jakościowa
+efc$c172code <- to_factor(efc$c172code)
+efc$e42dep <- to_factor(efc$e42dep)
+
+# pierwszy model
+fit1 <- lm(neg_c_7 ~ c160age + c172code + c161sex, data = efc)
+# drugi model
+fit2 <- lm(neg_c_7 ~ c160age + c172code + c161sex + c12hour, data = efc)
+# trzeci model
+fit3 <- lm(neg_c_7 ~ c160age + c172code + e42dep + tot_sc_e, data = efc)
+
+modele <- sjt.lm(fit1, fit2, fit3, no.output = TRUE)
+cat(modele$knitr)
+```
+
+Raport modelu możemy rozbudować dodając:
+
++ show.est = TRUE, 
++ show.std = NULL, 
++ show.ci = TRUE,
++ show.se = FALSE, 
++ show.header = FALSE, 
++ show.col.header = TRUE,
++ show.r2 = TRUE, 
++ show.icc = FALSE, 
++ show.re.var = FALSE,
++ show.fstat = FALSE, 
++ show.aic = FALSE, 
++ show.aicc = FALSE,
++ show.dev = FALSE
+  
+```{r sjfreq-przyklad-4,eval=FALSE}
+sjt.lm(fit1, fit2, fit3,
+       show.ci = FALSE,
+       show.se = TRUE,
+       show.header = TRUE,
+       show.aic = TRUE,
+       show.aicc = TRUE,
+       show.dev = TRUE,
+       show.fstat  = TRUE)
+```
+
+```{r sjfreq-przyklad-4-rozw,echo=FALSE, results='asis'}
+modele2 <- sjt.lm(fit1, fit2, fit3,
+                  show.ci = FALSE,
+                  show.se = TRUE,
+                  show.header = TRUE,
+                  show.aic = TRUE,
+                  show.aicc = TRUE,
+                  show.dev = TRUE,
+                  show.fstat  = TRUE,
+                  no.output = TRUE)
+cat(modele2$knitr)
+```
+
+## Pakiet DT
+
+W pakiecie DT możemy tworzyć interaktywne tabele do pokazywania danych. Poniżej przykład, jak taką tabelę można włączyć do raportu.
+
+```{r}
+data(apartments,package = 'PBImisc')
+datatable(apartments[,1:5])
+```
+
+
+
