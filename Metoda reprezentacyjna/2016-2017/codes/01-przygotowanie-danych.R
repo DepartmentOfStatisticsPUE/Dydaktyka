@@ -23,6 +23,8 @@ rio::export(bkl_2010_2014, file = 'Metoda reprezentacyjna/2016-2017/data/bkl_201
 save(bkl_2010_2014,file = 'Metoda reprezentacyjna/2016-2017/data/bkl_2010_2014.RData')
 
 
+
+
 ### tworzę słownik
 
 
@@ -76,4 +78,30 @@ df
 ### simPop -- generowanie populacji
 
 
+
+
+# slownik do html ---------------------------------------------------------
+
+
+bkl_2010_2014 %>% 
+  select(-respid, -powiat,-m3_1_4_ISCO, -jps, -kodpod) %>%
+  view_df(
+    x = .,
+    show.values = T,
+    show.labels = T,
+    show.frq = T,
+    show.prc = T,
+    show.na = T
+  )
+
+bkl_2010_2014 %>% 
+  select(-respid, -powiat,-m3_1_4_ISCO, -jps, -kodpod) %>%
+  view_df(
+    x = .,
+    show.values = F,
+    show.labels = F,
+    show.frq = F,
+    show.prc = F,
+    show.na = T
+  )
 
