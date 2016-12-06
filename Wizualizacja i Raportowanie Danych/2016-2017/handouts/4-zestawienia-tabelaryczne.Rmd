@@ -1,7 +1,7 @@
 ---
 title: "Zestawienia tabelaryczne"
 author: "Maciej Beręsewicz"
-date: "11/23/2016"
+date: "12/06/2016"
 output: 
   html_document: 
     keep_md: yes
@@ -38,7 +38,24 @@ W pakiecie `sjPlot` funkcje odpowiedzialne za tworzenie tabel rozpoczynają się
 ### Tabela częstości
 
 ```{r sjfreq-przyklad-1,eval=FALSE}
-sjt.frq(data = efc$e42dep)
+
+
+sjt.frq(data = efc$e42dep,
+        sort.frq = 'desc',
+        show.summary = FALSE,
+        var.labels = 'Tabela 1: zmienna dot ...')
+
+
+sjt.frq(data = efc[,c('e16sex','e42dep','c84cop3')],
+        sort.frq = 'desc',
+        show.summary = FALSE)
+
+### tabela częstości
+sjt.xtab(var.row = efc$e16sex,
+         var.col = efc$e42dep,
+         show.col.prc = TRUE,
+         show.row.prc = TRUE,
+         show.cell.prc = TRUE)
 ```
 
 ```{r sjfreq-przyklad-1-rozw,echo=FALSE,results='asis'}
@@ -50,10 +67,15 @@ cat(d$knitr)
 ### Tabela korelacji
 
 ```{r sjfreq-przyklad-2,eval=FALSE}
-sjt.corr(data = efc[,c('c82cop1','c83cop2','c84cop3','c85cop4')],
+sjt.corr(data = efc[,c('c82cop1','c83cop2',
+                       'c84cop3','c85cop4')])
+
+sjt.corr(data = efc[,c('c82cop1','c83cop2',
+                       'c84cop3','c85cop4')],
          corr.method = 'spearman',
          triangle = 'both',
          fade.ns = FALSE)
+
 ```
 
 ```{r sjfreq-przyklad-2-rozw,echo=FALSE,results='asis'}
@@ -70,16 +92,18 @@ cat(corr$knitr)
 ### Tabela raportu regresji liniowej
 
 ```{r sjfreq-przyklad-3,eval=FALSE}
-# zmienne jakościowe jakościowa
-efc$c172code <- to_factor(efc$c172code)
-efc$e42dep <- to_factor(efc$e42dep)
+# # zmienne jakościowe jakościowa
+# efc$c172code <- to_factor(efc$c172code)
+# efc$e42dep <- to_factor(efc$e42dep)
+# 
+# # pierwszy model
+# fit1 <- lm(neg_c_7 ~ c160age + c172code + c161sex, data = efc)
+# # drugi model
+# fit2 <- lm(neg_c_7 ~ c160age + c172code + c161sex + c12hour, data = efc)
+# # trzeci model
+# fit3 <- lm(neg_c_7 ~ c160age + c172code + e42dep + tot_sc_e, data = efc)
+# 
 
-# pierwszy model
-fit1 <- lm(neg_c_7 ~ c160age + c172code + c161sex, data = efc)
-# drugi model
-fit2 <- lm(neg_c_7 ~ c160age + c172code + c161sex + c12hour, data = efc)
-# trzeci model
-fit3 <- lm(neg_c_7 ~ c160age + c172code + e42dep + tot_sc_e, data = efc)
 
 sjt.lm(fit1, fit2, fit3)
 ```
@@ -100,6 +124,9 @@ fit3 <- lm(neg_c_7 ~ c160age + c172code + e42dep + tot_sc_e, data = efc)
 modele <- sjt.lm(fit1, fit2, fit3, no.output = TRUE)
 cat(modele$knitr)
 ```
+
+
+
 
 Raport modelu możemy rozbudować dodając:
 
@@ -140,6 +167,38 @@ modele2 <- sjt.lm(fit1, fit2, fit3,
                   no.output = TRUE)
 cat(modele2$knitr)
 ```
+
+Możemy tez użyć pakiety `texreg` stosując funkcję `screenreg`, `texreg` lub `htmlreg`. Porównajmy wydruk z tym wcześniejszym.
+
+```{r texreg}
+screenreg(l = list(fit1, fit2, fit3), single.row = T)
+```
+
+```{r htmlreg, results='asis'}
+htmlreg(l = list(fit1, fit2, fit3), single.row = T)
+```
+
+W tym przypadku możemy pozmieniać następujące elementy:
+
++ file -- gdzie mają być zapisane dokumenty
++ single.row -- jak mają być umieszczone błędy standardowe
++ stars -- czy uzyć gwiazdek do określenia istotności
++ custom.model.names - nazwy modeli
++ groups -- możemy zgrupować wiersze
++ custom.note -- możemy dodać notkę
++ digits -- liczba miejsc po przecinku
+
+
+```{r htmlreg-zmiany, results='asis'}
+htmlreg(l = list(fit1, fit2, fit3), 
+        single.row = T,
+        digits = 1,
+        stars = numeric(0),
+        groups = list('first group: c172' = 3:4,
+                      'second group: e42' = 7:9),
+        custom.model.names = c('M1','M2','M3'))
+```
+
 
 ## Pakiet DT
 
