@@ -1,0 +1,73 @@
+---
+title: "Prezentacja WIRDS"
+author: "Maciej Beręsewicz"
+date: ''
+output:
+  slidy_presentation:
+    keep_md: yes
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+library(dplyr) ## przetwarzanie
+library(ggplot2) ## wizualizacja
+library(scales) ## formatowanie skal
+library(readxl) ## wczytanie plików excel
+library(broom) ## formatowanie obiektów R
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+theme_set(theme_bw()) ## ustalamy jak wyglądają wykresy na wszystkich slajdach
+```
+
+## Pierwszy slajd
+
+testowy, **tekst pogrubiony**, *tekst napisany kursywą*, [tu jest link](http://www.stat.gov.pl) 
+
++ linia 1
++ linia 2
+    + podpunkt jakiś
+    + podpunkt jakiś 2
+  
+## Test czy plik jest widoczny
+
+```{r sprawdzam nazwy arkuszy}
+nazwy <- excel_sheets('RYNE_1947_XREL_20161213173244.xlsx')
+
+dane <- read_excel(
+  path = 'RYNE_1947_XREL_20161213173244.xlsx',
+  sheet = nazwy[2])
+
+head(dane)
+```
+
+## Wykres bezrobocia rejestrowanego w Poznaniu
+
+```{r zmieniam-nazwy}
+names(dane) <- c('kod','powiat','wyksz','plec','rok',
+                 'wartosc','jedn','atryb')
+```
+
+```{r przetwarzanie-danych}
+podzbior <- filter(dane, 
+                   wyksz == 'wyższe', 
+                   plec != 'ogółem',
+                   powiat == 'Powiat m.Poznań')
+
+podzbior$wartosc <- as.numeric(podzbior$wartosc)
+```
+
+```{r tworzymy wykres, fig.cap = 'tytuł'}
+ggplot(data = podzbior,
+       aes(x = rok,
+           y = wartosc,
+           group = plec,
+           color = plec)) +
+  geom_line() +
+  ggtitle('Liczba bezrobotnych według płci w Poznaniu')
+```
+
+
+
+
+
