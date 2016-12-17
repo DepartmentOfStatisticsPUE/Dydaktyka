@@ -347,78 +347,95 @@ svytotal(~eqIncome,des_up)</code></pre>
 <li>poisson - losowanie proporcjonalne do zmiennej pomocniczej</li>
 <li>systematic - losowanie systematyczne</li>
 </ul>
-<p>Jeżeli chcemy wylosować jednostki proporcjonalnie do poszczególnych warstw musimy wcześniej odpowiednio przygotować zbiór danych. Naszym celem jest wylosowanie szkół proporcjonalnie do jej typu oraz lokalizacji.</p>
-<!-- Załóżmy, że chcemy wylosować 100 szkół. W związku z tym powinniśmy wylosować następującą liczbę szkół. -->
-<!-- ```{r strat_check2} -->
-<!-- round(prop.table(xtabs(~SC02Q01+SC04Q01,school2009clean))*100) -->
-<!-- ``` -->
-<!-- Poniżej funkcja, którą napisałem na potrzeby tego skryptu -->
-<!-- ```{r strat_samp_function} -->
-<!-- strat_samp <- function(data, -->
-<!--                        samp_size, -->
-<!--                        ...) { -->
-<!--   ### sample function  -->
-<!--   samp_one <- function(x) { -->
-<!--     sample(1:length(x),length(x)) -->
-<!--   } -->
-<!--   ### function -->
-<!--   ds <- data %>%    -->
-<!--             group_by(...) %>% -->
-<!--             mutate(N_strat = n(), -->
-<!--                    los = samp_one(N_strat)) %>% -->
-<!--             group_by() %>% -->
-<!--             mutate(N = n(), -->
-<!--                    n_samp = round(N_strat/N*samp_size), -->
-<!--                    filter = los <= n_samp) %>% -->
-<!--             filter(filter) %>% -->
-<!--             select(-(N_strat:filter)) -->
-<!--   return(ds) -->
-<!-- } -->
-<!-- ``` -->
-<!-- Wykorzystamy teraz powyższą funkcję do losowania (losowanie proste bez zwracania) -->
-<!-- ```{r strat_sample} -->
-<!-- strat_samp(data=school2009, ### zbiór wejściowy -->
-<!--            samp_size=100, ### wielkość próby -->
-<!--            SC02Q01,SC04Q01)  ### zmienne warstwujące -->
-<!-- ``` -->
-</div>
-<div id="losowanie-zespoowe" class="section level2">
-<h2>Losowanie zespołowe</h2>
-<!-- W tym miejscu połączymy zbiór szkół oraz uczniów. -->
-<!-- ```{r laczenie_zbiorow} -->
-<!-- pisa <- merge(x = student2009, -->
-<!--               y = school2009clean, -->
-<!--               all.x=T) -->
-<!-- pisa <- pisa[complete.cases(pisa$SCHSIZE),] -->
-<!-- dim(pisa) -->
-<!-- head(pisa) -->
-<!-- ``` -->
-<p>W pakiecie <em>sampling</em> jest funkcja <em>cluster</em>, która umożliwia losowanie zespołowe z równymi bądź nierównymi prawdopodobieństwami inkluzji. Funkcja ma następujące argumenty:</p>
-<ul>
-<li>data - zbiór danych wejściowych</li>
-<li>clustername - zmienna, która określa zespoł (np. id szkoły)</li>
-<li>size - określa wielkość próby</li>
-<li>method - określa metodę losowania - prostą bez zwracania (srswor), prostą ze zwracaniem (srswr), proporcjonalną do zmiennej pomocniczej (poisson) lub systematycznie (systematic)</li>
-<li>pik - zmienna wg której dokonujemy losowania poissona</li>
-</ul>
-<!-- Poniżej kilka wywołań funkcji. W poniższym przykładzie dokonujemy losowania 60 szkół w których badamy wszystkich uczniów. Stosujemy losowanie proste bez zwracania. W wyniku otrzymujemy obiekt data.frame z informacją o wylosowanej szkole, jednostkach w ramach szkół oraz prawdopodobieństwie wylosowania, które jest przypisane do każdego ucznia. -->
-<!-- ```{r cluster_examples} -->
-<!-- wyn <- cluster(data = pisa,  -->
-<!--                clustername = 'SCHOOLID',  -->
-<!--                size = 60,  -->
-<!--                method = 'srswor') -->
-<!-- table(droplevels(wyn$SCHOOLID)) -->
-<!-- ``` -->
-<!-- Zobaczmy jakbyśmy chcieli uwzględnić zmienną określającą wielkość szkoły tak aby wykorzystać losowanie proporcjonalne do zmiennej pomocniczej. Aby to zrobić korzystamy ze zbioru dla szkół ponieważ przy wyborze zmiennej pomocniczej musielibyśmy użyć innej zmiennej, która jest przyposana do każdego ucznia. -->
-<!-- ```{r cluster_examples2} -->
-<!-- wyn <- cluster(data = school2009clean,  -->
-<!--                clustername = 'SCHOOLID',  -->
-<!--                size = 60,  -->
-<!--                description = TRUE,  -->
-<!--                pik = school2009clean$SCHSIZE, -->
-<!--                method = 'poisson') -->
-<!-- head(wyn) -->
-<!-- ``` -->
+<p>Jeżeli chcemy wylosować jednostki proporcjonalnie do poszczególnych warstw musimy wcześniej odpowiednio przygotować zbiór danych. Załóżmy, że chcemy wylosowac jednostki proporcjonalnie do płci (<code>rb090</code>) oraz regionów (<code>db040</code>). Zobaczmy ile jednostek jest w tych kategoriach.</p>
+<pre class="r"><code>count(eusilc, rb090, db040)</code></pre>
+<pre><code>## Source: local data frame [18 x 3]
+## Groups: rb090 [?]
+## 
+##     rb090         db040     n
+##    &lt;fctr&gt;        &lt;fctr&gt; &lt;int&gt;
+## 1    male    Burgenland   261
+## 2    male     Carinthia   517
+## 3    male Lower Austria  1417
+## 4    male      Salzburg   440
+## 5    male        Styria  1128
+## 6    male         Tyrol   650
+## 7    male Upper Austria  1363
+## 8    male        Vienna  1132
+## 9    male    Vorarlberg   359
+## 10 female    Burgenland   288
+## 11 female     Carinthia   561
+## 12 female Lower Austria  1387
+## 13 female      Salzburg   484
+## 14 female        Styria  1167
+## 15 female         Tyrol   667
+## 16 female Upper Austria  1442
+## 17 female        Vienna  1190
+## 18 female    Vorarlberg   374</code></pre>
+<p>Załóżmy, że chcemy wylosować 20% próbę z naszej populacji i chcielibyśmy aby została zachowana struktura populacji. Jak to zrobić? Na początek obliczmy ile jednostek musimy wylosować w ramach kategorii.</p>
+<pre class="r"><code>### sortujemy zbiór danych
+eusilc &lt;- arrange(eusilc, rb090, db040)
+
+### liczebnosć warstw
+warstwy &lt;- count(eusilc, rb090, db040)
+
+### wielkosc proby
+n_sample &lt;- round(0.2 * n_pop)
+
+### liczebność próby według warstw
+warstwy &lt;- mutate(warstwy, 
+                  wielkosc = round( n / n_pop * n_sample))
+
+### przeprowadzamy losowanie
+set.seed(123456)
+wylosowane &lt;- strata(data = eusilc,
+                     stratanames = c('rb090', 'db040'),
+                     size = warstwy$wielkosc,
+                     method = 'srswor')
+
+head(wylosowane)</code></pre>
+<pre><code>##    rb090      db040 ID_unit      Prob Stratum
+## 19  male Burgenland      19 0.1992337       1
+## 20  male Burgenland      20 0.1992337       1
+## 25  male Burgenland      25 0.1992337       1
+## 28  male Burgenland      28 0.1992337       1
+## 32  male Burgenland      32 0.1992337       1
+## 39  male Burgenland      39 0.1992337       1</code></pre>
+<pre class="r"><code>### sprawdzmy czy zgadzają się liczebnosci
+
+wynik &lt;- count(wylosowane, rb090, db040)
+wynik$zalozone &lt;- warstwy$wielkosc
+wynik</code></pre>
+<pre><code>## Source: local data frame [18 x 4]
+## Groups: rb090 [?]
+## 
+##     rb090         db040     n zalozone
+##    &lt;fctr&gt;        &lt;fctr&gt; &lt;int&gt;    &lt;dbl&gt;
+## 1    male    Burgenland    52       52
+## 2    male     Carinthia   103      103
+## 3    male Lower Austria   283      283
+## 4    male      Salzburg    88       88
+## 5    male        Styria   226      226
+## 6    male         Tyrol   130      130
+## 7    male Upper Austria   273      273
+## 8    male        Vienna   226      226
+## 9    male    Vorarlberg    72       72
+## 10 female    Burgenland    58       58
+## 11 female     Carinthia   112      112
+## 12 female Lower Austria   277      277
+## 13 female      Salzburg    97       97
+## 14 female        Styria   233      233
+## 15 female         Tyrol   133      133
+## 16 female Upper Austria   288      288
+## 17 female        Vienna   238      238
+## 18 female    Vorarlberg    75       75</code></pre>
+<!-- ## Losowanie zespołowe -->
+<!-- W pakiecie *sampling* jest funkcja *cluster*, która umożliwia losowanie zespołowe z równymi bądź nierównymi prawdopodobieństwami inkluzji. Funkcja ma następujące argumenty: -->
+<!-- * data - zbiór danych wejściowych -->
+<!-- * clustername - zmienna, która określa zespoł (np. id szkoły) -->
+<!-- * size - określa wielkość próby -->
+<!-- * method - określa metodę losowania - prostą bez zwracania (srswor), prostą ze zwracaniem (srswr), proporcjonalną do zmiennej pomocniczej (poisson) lub systematycznie (systematic) -->
+<!-- * pik - zmienna wg której dokonujemy losowania poissona -->
 <!-- ## Losowanie dwustopniowe -->
 <!-- Przejdziemy teraz do najczęściej stosowanego schematu losowania tj. losowania dwustopniowego. W pierwszym kroku losuje się zwykle terenowe rejony spisowe (jednostki statystyczne), a w ramach tych jednostek następnie losowane są kolejne jednostki (np. mieszkania, uczniowe). W przypadku badania *PISA* w pierwszym etapie losowane były szkoły proporcjonalnie do liczby uczniów, a następnie w ramach szkół uczniowe. Spróbujmy odtworzyć to losowanie. -->
 <!-- Możemy w tym celu wykorzystać funkcję *sampling::mstage*, która ma następujace argumenty: -->
@@ -428,23 +445,6 @@ svytotal(~eqIncome,des_up)</code></pre>
 <!-- * pik - zmienna wykorzystywana do losowania proporcjonalnego (poissona) -->
 <!-- * method - do wyboru są następujące metody: "srswor", "srswr", "poisson" oraz "systematic" -->
 <!-- * description - zwraca informacje podsumowanie losowania. -->
-<!-- Na początek przeprowadzimy losowanie jednostopniowe ale uwzględniające stratfikację względem dwóch zmiennych - SC02Q01 (status) oraz SC04Q01 (lokalizacja), a następnie losujemy szkoły. -->
-<!-- ```{r twostage_sampling} -->
-<!-- pisa <- pisa %>% arrange(SC02Q01,SCHOOLID) -->
-<!-- wyn <- mstage(data = pisa,  -->
-<!--               stage = list('stratified', 'cluster'),  -->
-<!--               varnames = list('SC02Q01','SCHOOLID'), -->
-<!--               size = list(c(45,5),c(10,1)), -->
-<!--               method = 'srswor') -->
-<!-- str(wyn,2) -->
-<!-- ``` -->
-<!-- Przeprowadzimy teraz losowanie dwustopniowe - w pierwszym stopniu losujemy szkoły, a następnie losujemy uczniów. -->
-<!-- ```{r twostage_sampling2} -->
-<!-- ### losujemy szkoły -->
-<!-- szkoly <- strat_samp(data= school2009clean, -->
-<!--                      samp_size=50, -->
-<!--                      SC02Q01,SC04Q01)  -->
-<!-- ``` -->
 </div>
 </div>
 

@@ -253,30 +253,66 @@ W przypadku losowania warstwowego wykorzystamy funkcję sampling::strata. Funkcj
 * poisson - losowanie proporcjonalne do zmiennej pomocniczej
 * systematic - losowanie systematyczne
 
-Jeżeli chcemy wylosować jednostki proporcjonalnie do poszczególnych warstw musimy wcześniej odpowiednio przygotować zbiór danych. Naszym celem jest wylosowanie szkół proporcjonalnie do jej typu oraz lokalizacji.
+Jeżeli chcemy wylosować jednostki proporcjonalnie do poszczególnych warstw musimy wcześniej odpowiednio przygotować zbiór danych. Załóżmy, że chcemy wylosowac jednostki proporcjonalnie do płci (`rb090`) oraz regionów (`db040`). Zobaczmy ile jednostek jest w tych kategoriach.
 
-## Losowanie zespołowe
+```{r}
+count(eusilc, rb090, db040)
+```
+
+Załóżmy, że chcemy wylosować 20% próbę z naszej populacji i chcielibyśmy aby została zachowana struktura populacji. Jak to zrobić? Na początek obliczmy ile jednostek musimy wylosować w ramach kategorii.
+
+```{r wielkosc-proby-warstwy}
+### sortujemy zbiór danych
+eusilc <- arrange(eusilc, rb090, db040)
+
+### liczebnosć warstw
+warstwy <- count(eusilc, rb090, db040)
+
+### wielkosc proby
+n_sample <- round(0.2 * n_pop)
+
+### liczebność próby według warstw
+warstwy <- mutate(warstwy, 
+                  wielkosc = round( n / n_pop * n_sample))
+
+### przeprowadzamy losowanie
+set.seed(123456)
+wylosowane <- strata(data = eusilc,
+                     stratanames = c('rb090', 'db040'),
+                     size = warstwy$wielkosc,
+                     method = 'srswor')
+
+head(wylosowane)
+
+### sprawdzmy czy zgadzają się liczebnosci
+
+wynik <- count(wylosowane, rb090, db040)
+wynik$zalozone <- warstwy$wielkosc
+wynik
+```
 
 
-W pakiecie *sampling* jest funkcja *cluster*, która umożliwia losowanie zespołowe z równymi bądź nierównymi prawdopodobieństwami inkluzji. Funkcja ma następujące argumenty:
+<!-- ## Losowanie zespołowe -->
 
-* data - zbiór danych wejściowych
-* clustername - zmienna, która określa zespoł (np. id szkoły)
-* size - określa wielkość próby
-* method - określa metodę losowania - prostą bez zwracania (srswor), prostą ze zwracaniem (srswr), proporcjonalną do zmiennej pomocniczej (poisson) lub systematycznie (systematic)
-* pik - zmienna wg której dokonujemy losowania poissona
+<!-- W pakiecie *sampling* jest funkcja *cluster*, która umożliwia losowanie zespołowe z równymi bądź nierównymi prawdopodobieństwami inkluzji. Funkcja ma następujące argumenty: -->
 
-## Losowanie dwustopniowe
+<!-- * data - zbiór danych wejściowych -->
+<!-- * clustername - zmienna, która określa zespoł (np. id szkoły) -->
+<!-- * size - określa wielkość próby -->
+<!-- * method - określa metodę losowania - prostą bez zwracania (srswor), prostą ze zwracaniem (srswr), proporcjonalną do zmiennej pomocniczej (poisson) lub systematycznie (systematic) -->
+<!-- * pik - zmienna wg której dokonujemy losowania poissona -->
 
-Przejdziemy teraz do najczęściej stosowanego schematu losowania tj. losowania dwustopniowego. W pierwszym kroku losuje się zwykle terenowe rejony spisowe (jednostki statystyczne), a w ramach tych jednostek następnie losowane są kolejne jednostki (np. mieszkania, uczniowe). W przypadku badania *PISA* w pierwszym etapie losowane były szkoły proporcjonalnie do liczby uczniów, a następnie w ramach szkół uczniowe. Spróbujmy odtworzyć to losowanie.
+<!-- ## Losowanie dwustopniowe -->
 
-Możemy w tym celu wykorzystać funkcję *sampling::mstage*, która ma następujace argumenty:
+<!-- Przejdziemy teraz do najczęściej stosowanego schematu losowania tj. losowania dwustopniowego. W pierwszym kroku losuje się zwykle terenowe rejony spisowe (jednostki statystyczne), a w ramach tych jednostek następnie losowane są kolejne jednostki (np. mieszkania, uczniowe). W przypadku badania *PISA* w pierwszym etapie losowane były szkoły proporcjonalnie do liczby uczniów, a następnie w ramach szkół uczniowe. Spróbujmy odtworzyć to losowanie. -->
 
-* data - zbiór danych wejściowy
-* stage - określamy w jaki sposób mają być losowane jednostki na poszczególnych etapach - do wyboru mamy "stratified", "cluster" lub "" co oznacza brak stosowania losowania zespołowego oraz stratyfikacyjnego.
-* varames - wskazujemy zmienne, które określają zespoły lub warstwy
-* pik - zmienna wykorzystywana do losowania proporcjonalnego (poissona)
-* method - do wyboru są następujące metody: "srswor", "srswr", "poisson" oraz "systematic"
-* description - zwraca informacje podsumowanie losowania.
+<!-- Możemy w tym celu wykorzystać funkcję *sampling::mstage*, która ma następujace argumenty: -->
+
+<!-- * data - zbiór danych wejściowy -->
+<!-- * stage - określamy w jaki sposób mają być losowane jednostki na poszczególnych etapach - do wyboru mamy "stratified", "cluster" lub "" co oznacza brak stosowania losowania zespołowego oraz stratyfikacyjnego. -->
+<!-- * varames - wskazujemy zmienne, które określają zespoły lub warstwy -->
+<!-- * pik - zmienna wykorzystywana do losowania proporcjonalnego (poissona) -->
+<!-- * method - do wyboru są następujące metody: "srswor", "srswr", "poisson" oraz "systematic" -->
+<!-- * description - zwraca informacje podsumowanie losowania. -->
 
 
