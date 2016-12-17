@@ -1,17 +1,20 @@
 ---
-title: "Teoria - losowanie"
+title: "Schematy losowania"
 author: "Maciej Beręsewicz"
-date: "11/8/2016"
-output: ioslides_presentation
+date: ''
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 ```
 
 
 ## Teoria
 
+Poniższy dokument zawiera informację o tym jak losować jednostki według schematów nieprostych z pakietem *sampling*. Struktura dokumentu jest następująca. W pierwszej części poznamy schematy losowania jednostek w przypadku gdy prawdopodobieństwa wylosowania poszczególnych jednostek są takie same. W drugiej części poznamy schematy losowania jednostek gdy prawdopodbieństwo inkluzji jednostek jest różne. Ostatnia część poświęcona będzie pakietowi *survey* oraz temu w jaki sposób deklarujemy poszczególne schematy losowania, które poznamy we wcześniejszych podpunktach.
 
 ## Jak przeprowadzić losowanie?
 
@@ -26,3 +29,254 @@ Losowania bardziej skomplikowane
 * `strata` -- losowanie warstwowe
 * `cluster` -- losowanie zespołowe
 * `mstage` -- losowanie wielostopniowe
+
+Przed poznaniem funkcji musimy zainstalować pakiety oraz wczytać dane. Poniższy kod umożliwia instalowanie oraz wczytywanie pakietów.
+
+```{r instalacja pakietów,eval=FALSE}
+#### instalowanie pakietów -----------------------------------
+install.packages(c('survey','sampling','ggplot2','dplyr','laeken'),
+                 dependencies=T)
+```
+
+```{r wczytanie pakietow}
+library(survey)
+library(sampling)
+library(ggplot2)
+library(dplyr)
+library(laeken) ## zbiór danych eusilc
+```
+
+Na zajęciach wykorzystamy syntetyczny zbiór utworzony na podstawie badania EU-SILC. Zbiór ten znajduje się w pakiecie `laeken` i uruchamiamy go w następujący sposób.
+
+```{r}
+data(eusilc)
+```
+
+Spójrzmy na podsumowanie zbioru
+
+```{r schoolInfo}
+str(eusilc)
+```
+
+Zbiór zawiera następujące zmienne:
+
++ db030 - integer; the household ID.
++ hsize - integer; the number of persons in the household.
++ db040 - factor; the federal state in which the household is located (levels Burgenland, Carinthia, Lower Austria, Salzburg, Styria, Tyrol, Upper Austria, Vienna and Vorarlberg).
++ rb030 - integer; the personal ID.
++ age - integer; the person's age.
++ rb090 - factor; the person's gender (levels male and female).
++ pl030 - factor; the person's economic status (levels 1 = working full time, 2 = working part time, 3 = unemployed, 4 = pupil, student, further training or unpaid work experience or in compulsory military or community service, 5 = in retirement or early retirement or has given up business, 6 = permanently disabled or/and unfit to work or other inactive person, 7 = fulfilling domestic tasks and care responsibilities).
++ pb220a - factor; the person's citizenship (levels AT, EU and Other).
++ py010n - numeric; employee cash or near cash income (net).
++ py050n - numeric; cash benefits or losses from self-employment (net).
++ py090n - numeric; unemployment benefits (net).
++ py100n - numeric; old-age benefits (net).
++ py110n - numeric; survivor's benefits (net).
++ py120n - numeric; sickness benefits (net).
++ py130n - numeric; disability benefits (net).
++ py140n - numeric; education-related allowances (net).
++ hy040n - numeric; income from rental of a property or land (net).
++ hy050n - numeric; family/children related allowances (net).
++ hy070n - numeric; housing allowances (net).
++ hy080n - numeric; regular inter-household cash transfer received (net).
++ hy090n - numeric; interest, dividends, profit from capital investments in unincorporated business (net).
++ hy110n - numeric; income received by people aged under 16 (net).
++ hy130n - numeric; regular inter-household cash transfer paid (net).
++ hy145n - numeric; repayments/receipts for tax adjustment (net).
++ eqSS - numeric; the equivalized household size according to the modified OECD scale.
++ eqIncome - numeric; a slightly simplified version of the equivalized household income.
++ db090 - numeric; the household sample weights.
++ rb050 - numeric; the personal sample weights.
+
+# Losowanie z wykorzystaniem funkcji sample oraz pakietu sampling
+
+W tej części zajmiemy się różnymi schematami losowania, które są dostępne w pakiecie sampling, jak również z domyślną funkcją *sample*.
+
+## Losowanie proste bez zwracania
+
+Pierwszym i najprostrzym schematem losowania jest losowanie proste bez zwracania. W takim przypadku losujemy określony podzbiór jednostek bez uwzględniania zmiennych pomocniczych (np. płci, wieku). W `R` możemy wykorzystać w tym celu funkcję `sample` lub `srswor`.
+
+Poniżej przykład wykorzystania funkcji dla zbioru studenci. Załóżmy, że naszym celem jest oszacowanie średniej wielkości gospodarstwa domowego.
+
+```{r srs}
+### ID osób w gospodarstwach
+id_hh <- eusilc$rb030
+
+### Frakcja, którą losujemy
+prop_wylos <- 0.1
+
+### Wielkość próby
+n_pop <- length(id_hh) ## wielkość populacji
+n_sample <- round(n_pop*prop_wylos) ## wielkość próby
+
+### identyfikatory wylosowanych studetów
+set.seed(123) ## ustawienie ziarna losowania tak aby każda osoba dostała taki sam wynik
+id_hh_wylos <- sample(x = id_hh,
+                      size = n_sample)
+
+### wylosowani studenci
+eusilc_samp <- subset(eusilc, rb030 %in% id_hh_wylos)
+
+dim(eusilc_samp)
+```
+
+Sprawdzmy teraz jakie wyniki otrzymujemy w przypadku losowania prostego i porównamy do populacji.
+
+```{r srs_results}
+summary(eusilc_samp$hsize)
+summary(eusilc$hsize)
+```
+
+Teraz wykorzystamy funkcję sampling::srswor
+
+```{r sampling_srs}
+## ID osób w gospodarstwach
+id_hh <- eusilc$rb030
+
+### Frakcja, którą losujemy
+prop_wylos <- 0.1
+
+### Wielkość próby
+n_pop <- length(id_hh) ## wielkość populacji
+n_sample <- round(n_pop*prop_wylos) ## wielkość próby
+
+### losujemy
+set.seed(123)
+row_wylos <- srswor(n_sample,n_pop)
+
+### sprawdzmy jak wygląda wynik
+head(row_wylos)
+
+### wybieranie jednostek
+stu_samp <- eusilc[row_wylos, ]
+```
+
+
+## Losowanie proste ze zwracaniem
+
+## Losowanie systematyczne
+
+Losowanie systematyczne polega na wylosowaniu określonej liczby jednostek wykorzystując stały interwał między wybieranymi jednostkami (np. co 5). Interwał określany jest przez stosunek wielkości populacji do wielkości próby. Losowanie systematyczne może również uwzględniać fakt, że jednostki maja nierówne prawdopodobieństwa dostania się do próby. W tym przykładzie zastosujemy dwa podejścia - losowanie z równymi prawdopodobieństwami oraz losowanie z nierównymi prawdopodobieństwami.
+
+W pierwszym przypadku wykorzystamy funkcję *seq*, która umożliwia tworzenie wektorów z pewnym krokiem. Istotny jest również element określający start losowania systematycznego, co wpływa na dobór jednostek.
+
+```{r systematic_srs}
+## krok
+k <- n_pop/n_sample
+
+## losowanie początku
+set.seed(123)
+start <- sample(1:k,1)
+
+## losowanie systematyczne
+id_wylos <- seq(from = start, 
+                to = n_pop,
+                by = round(k))
+
+### wylosowanie jednostki
+systematyczne <- eusilc[id_wylos,]
+```
+
+Poniżej przedstawiamy porównanie w przypadku losowania systematycznego
+
+```{r systematic_results}
+### porównanie rozkładu
+summary(systematyczne$hsize)
+summary(eusilc$hsize)
+```
+
+## Losowanie proporcjonalne do zmiennej pomocniczej
+
+W tym celu wykorzystamy funkcję `sampling::UPpoisson` - jeden ze schematów losowania wykorzystywany w przypadku przyjęcia za zmienną pomocniczą zmienną ciągłą. Najczęściej takie losowanie wykorzysujemy gdy chcemy losować jednostki proporcjonalnie do ich wielkości (np. liczby zatrudnionych, przychodów). 
+
+Przyjrzyjmy się zmiennej `eqIncome` określającej dochód ekwiwalentny.
+
+```{r sampling_uppoisson}
+summary(eusilc$eqIncome)
+```
+
+Wykorzystamy teraz funkcję `sampling::UPpoisson` oraz `sampling::inclusionprobabilities`, która służy do określenia prawdopodobieństw inkluzji poszczególnych jednostek.
+
+```{r sampling_uppoisson3}
+### wielkość próby
+n <- 90
+
+### obliczamy prawdopodobieństwa 
+pik <- inclusionprobabilities(eusilc$eqIncome,n)
+summary(pik)
+
+### wykres jak zmienia jak wygląda prawdopodobieństwo
+n_sch <- nrow(eusilc)
+```
+
+Po ustaleniu prawdopodobieństw wylosowania poszczególnych jednostek stosujemy funkcję `sampling::UPpoisson`. W wyniku otrzymujemy wektor składający się z 0-1, który określa czy dana jednostka jest wylosowana (1) lub niejest wylosowania (0).
+
+```{r sampling_uppoisson4}
+### losowanie z wykorzystaniem funkcji UPpoisson (losowa wielkość jednak zbliżona do 38)
+set.seed(123)
+pp_wylos <- UPpoisson(pik)
+sum(pp_wylos)
+
+### wybranie jednostek
+stu_pp <- eusilc[pp_wylos, ]
+stu_pp$pik <- pik[pp_wylos]
+stu_pp$fpc <- nrow(stu_pp)
+```
+
+Wartość globalną możemy oszacować jako suma iloczynów kolumny *eqIncome* oraz odwrotności *pik*, która będzie określać wagi dla poszczególnych szkół.
+
+```{r sampling_uppoison_result}
+sum(stu_pp$eqIncome * 1/stu_pp$pik)
+```
+
+Porównamy teraz szacunki z wykorzystaniem funkcji survey::svydesign
+
+```{r sampling_uppoisson_results2}
+### deklaracja schematu losowania
+des_up <- svydesign(ids =  ~ 1,
+                    probs = ~ pik,
+                    fpc = ~ fpc,
+                    data = stu_pp)
+
+### szacowanie globalnego dochodu
+svytotal(~eqIncome,des_up)
+```
+
+
+## Losowanie warstwowe
+
+W przypadku losowania warstwowego wykorzystamy funkcję sampling::strata. Funkcja ta umożliwia następujące losowania jednostek:
+
+* srswor - losowanie proste bez zwracania
+* srswr - losowania proste ze zwracaniem
+* poisson - losowanie proporcjonalne do zmiennej pomocniczej
+* systematic - losowanie systematyczne
+
+Jeżeli chcemy wylosować jednostki proporcjonalnie do poszczególnych warstw musimy wcześniej odpowiednio przygotować zbiór danych. Naszym celem jest wylosowanie szkół proporcjonalnie do jej typu oraz lokalizacji.
+
+## Losowanie zespołowe
+
+
+W pakiecie *sampling* jest funkcja *cluster*, która umożliwia losowanie zespołowe z równymi bądź nierównymi prawdopodobieństwami inkluzji. Funkcja ma następujące argumenty:
+
+* data - zbiór danych wejściowych
+* clustername - zmienna, która określa zespoł (np. id szkoły)
+* size - określa wielkość próby
+* method - określa metodę losowania - prostą bez zwracania (srswor), prostą ze zwracaniem (srswr), proporcjonalną do zmiennej pomocniczej (poisson) lub systematycznie (systematic)
+* pik - zmienna wg której dokonujemy losowania poissona
+
+## Losowanie dwustopniowe
+
+Przejdziemy teraz do najczęściej stosowanego schematu losowania tj. losowania dwustopniowego. W pierwszym kroku losuje się zwykle terenowe rejony spisowe (jednostki statystyczne), a w ramach tych jednostek następnie losowane są kolejne jednostki (np. mieszkania, uczniowe). W przypadku badania *PISA* w pierwszym etapie losowane były szkoły proporcjonalnie do liczby uczniów, a następnie w ramach szkół uczniowe. Spróbujmy odtworzyć to losowanie.
+
+Możemy w tym celu wykorzystać funkcję *sampling::mstage*, która ma następujace argumenty:
+
+* data - zbiór danych wejściowy
+* stage - określamy w jaki sposób mają być losowane jednostki na poszczególnych etapach - do wyboru mamy "stratified", "cluster" lub "" co oznacza brak stosowania losowania zespołowego oraz stratyfikacyjnego.
+* varames - wskazujemy zmienne, które określają zespoły lub warstwy
+* pik - zmienna wykorzystywana do losowania proporcjonalnego (poissona)
+* method - do wyboru są następujące metody: "srswor", "srswr", "poisson" oraz "systematic"
+* description - zwraca informacje podsumowanie losowania.
+
+
