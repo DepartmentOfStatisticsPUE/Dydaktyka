@@ -1,14 +1,14 @@
 ---
 title: "Survey Package"
 author: "Maciej Beręsewicz"
-institution: "Kateda Statystyki UEP"
-date: "22.10.2014"
+date: ""
 output:
   pdf_document:
     toc: yes
   html_document:
     number_sections: yes
     toc: yes
+institution: Kateda Statystyki UEP
 ---
 
 ```{r ustawienia ,echo=F,message=FALSE,warning=FALSE,error=FALSE}

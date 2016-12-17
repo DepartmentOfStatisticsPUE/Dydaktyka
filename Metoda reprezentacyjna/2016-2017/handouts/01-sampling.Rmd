@@ -3,8 +3,8 @@ title: "Schematy losowania"
 author: "Maciej Beręsewicz"
 date: ''
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
