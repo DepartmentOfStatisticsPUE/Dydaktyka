@@ -1,0 +1,152 @@
+---
+title: "Powtarzalne badania i raporty (Reproducible research - reproducible business)"
+author: "Maciej Beręsewicz"
+date: "1/10/2017"
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Plan wykładu
+
+1. Organizowanie danych oraz kodu
+2. Rób wszystko z wykorzystaniem skryptów
+3. Zautomatyzuj proces
+4. Wykorzystuaj skrypty do tworzenia raportów
+5. Zmień często powtarzalny kod w funkcje
+6. Stwórz pakiet zawierający funkcje
+7. Używaj systemów kontroli wersji
+8. Wybierz licencję dla swojego oprogramowania
+
+##
+
+Perhaps the most important step to take towards ease of reproducibility is to be organized. Ideally, the names of files and subdirectories are self-explanatory, so that one can tell at a glance what data files contain, what scripts do, and what came from what (Broman, 2016).
+
+
+## Organizowanie danych oraz kodu (1)
+
+1. Jeden projekt -- jeden folder
+
+* wszystko co jest związane z danym projektem przetrzymuj w jednym folderze.
+* folder ten powinien zawierać m.in. dane, kody i rezultaty danego projektu.
+* dlaczego: łatwiej będzie taki folder spakować i przesłać komuś do analizy.
+
+2. Oddziel dane źródłowe od danych będących wynikiem przetwarzania
+
+* stwórz oddzielny folder zawierający dane źródłowe (np. `raw_data`, `dane_zrodlowe`) i oddzielny dla danych będących wynikiem projektu (np. `data`,`dane_wynikowe`) lub nawet dwa foldery dotyczące danych. Na przykład dla danych będących wynikiem przetwarzania (`Derived Data`), które zawierają dane zformatowane, przetworzone i wyczyszczone oraz dane zawierające podsumowania (`Data summaries`), który zawiera podsumowania wykorzystywane np. do tworzenia wykresów.
+
+## Organizowanie danych oraz kodu (2)
+
+3. Oddziel dane od kodu. 
+
+* warto stworzyć oddzielne foldery do kodów, które wykorzystujemy. Mogą one zaczynać się od nazw języków, które wykorzystujecie (np. R/, Python/) lub w przypadku gdy wykorzystujecie w projekcie tylko jeden język programowania wystarczy stworzyć folder np. o nazwie `codes`.
+
+4. Używaj ścieżek względnych
+
+* nigdy nie używaj ścieżek `C:\Users\SomeOne\Projects\SomeProject\RawData\some_file.csv` lub `~/Projects/SomeProject/RawData/some_file.csv`.
+* używaj ścieżek względnych odnoszących się do folderu projektu `/RawData/some_file.csv`.
+
+5. Zastanów się nad nazwami plików.
+
+* nigdy nie zmieniaj nazw plików źródłowych lub tych, które otrzymałeś od współpracowników/kolegów
+* nazwy danych wynikowych oraz kodów powinny być jasne i zrozumiałe. 
+* dotyczy to zarówno tworzonych zmiennych, obiektów czy funkcji.
+
+## Organizowanie danych oraz kodu (3)
+
+6. Nie używaj w nazwach plików słowa `ostateczne`, `finalne`
+
+* nigdy wynik nie będzie ostateczny -- pojawią się pliki o nazwie `dane_finalne_2016-02-01`, a później `dane_finalne_2016-02-03` itd.
+* jeżeli chcesz zapisywać kolejne wersje danych wystarczy, że dodasz kolejny numer np. `dane_v1, dane_v2`
+
+7. Stwórz pliki `readme`
+
+* nawet jeżeli dobrze zorganizujesz dane dobrze jest umieścić plik wyjaśniający zawartość projektu
+* będzie to podstawia dokumentacji, która pomoże zarówno przyszłemu `ja`, jak i współpracownikom.
+* uaktualniaj ten plik.
+
+## Rób wszystko z wykorzystaniem skryptów 
+
+* Twórz kody, unikaj klinania (nie odtworzysz tego!)
+* Zacznij od danych źródłowych
+* Jeżeli pobierasz dane z internetu użyj do tego skryptów (np. `wget`, `curl`, lub w R pakiet `httr`, czy funkcja `download.file`)
+* Jeżeli przetwarzasz dane rób to kodem (np. xls -> csv, to stwórz skrypt, który to robi)
+* **NIGDY RĘCZNIE NIE EDYTUJ DANYCH ŹRÓDŁOWYCH LUB JAKICHKOLWIEK DANYCH**, użyj skryptów. Możesz do tego wykorzystać skrypty np. w R
+* wszystkie elementy czyszczenia danych powinny być zapisane w skryptach
+* każda analiza powinna być w oddzielnym skrypcie. Przygotuj skrypty tak, aby można je było łatwo uruchamiać
+* używaj `set.seed` w przypadku tworzenia liczb losowych lub replikacji (np. bootstrap).
+
+
+## Zautomatyzuj proces
+
+* Warto stworzyć jeden główny skrypt, który odpala wszystkie pozostałe
+* Można do tego wykorzystać zarówno `R`, jak i `bash/powershell` czy `GNU Make`
+* Więcej można znaleźć na:
+    + `bash` -- https://linuxconfig.org/bash-scripting-tutorial
+    + `powershell` --  https://rkeithhill.wordpress.com/2009/03/08/effective-windows-powershell-the-free-ebook/
+    + `GNU make` --  https://www.gnu.org/software/make/manual/make.html
+
+## Wykorzystuaj skrypty do tworzenia raportów
+
+* Warto rozważyć aby dla każdego etapu tworzyć stworzyć raporty zawierające zarówno kod, jak i jego wyniki
+* W tym celu można wykorzystać:
+    + R: `knitr`, `rmarkdown`
+    + Python `Python Jupiter`
+
+## Zmień często powtarzalny kod w funkcje
+
+* Skrypty często zawierają kody, które są wielokrotnie powtarzane
+* Stwórz funkcje, które najczęściej wykorzystujesz aby uniknąć powtórzeń
+* Funkcje umieść w jednym pliku
+
+## Stwórz pakiet zawierający funkcje
+
+* Najlepiej aby opakować często wykorzystywane funkcje w pakiet R lub moduł Python
+* Tworzenie pakietów w R jest teraz dziecinnie proste:
+    + R: 
+        + http://kbroman.org/pkg_primer
+        + http://r-pkgs.had.co.nz/
+        + http://hilaryparker.com/2014/04/29/writing-an-r-package-from-scratch/
+        + http://hilaryparker.com/2013/04/03/personal-r-packages/
+    + Python:
+        + https://docs.python.org/3/tutorial/modules.html
+
+## Używaj systemów kontroli wersji
+
+Co to jest system kontroli wersji?
+
++ oprogramowanie służące do śledzenia zmian głównie w kodzie źródłowym oraz pomocy programistom w łączeniu zmian dokonanych w plikach przez wiele osób w różnym czasie.
+
+Dlaczego?
+
++ Łatwość kontroli kodu
++ Łatwość śledzenia zmian w kodzie
++ Łatwiej znaleźć błąd i go naprawić
++ Łatwiej uwzględnic zmiany współpracowników, nawet w przypadku pracy na jednym pliku
+
+Jest wiele systemów, m.in. `svn`, `git`. Warto rozpocząc przygodę z `git` i wykorzystać jeden ze znanych portali np. `GitHub` czy `BitBucket`. 
+
+Tutoriale:
+
++ git - http://kbroman.org/github_tutorial/
++ GitHub - https://guides.github.com/activities/hello-world/
++ BitBucket - https://www.atlassian.com/git/tutorials/learn-git-with-bitbucket-cloud/
+
+
+## Wybierz licencję dla swojego oprogramowania
+
++ The MIT license is among the more permissive. 
++ The GPL is “viral” in that it extends to derivative works: software that incorporates code that was licensed under the GPL must also be licensed under the GPL. 
++ So I use the GPL if I have to (that is, if I’ve incorporated others’ GPL code), and I use the MIT license otherwise.
+
+
+## Literature
+
++ Broman (2016), initial steps toward reproducible research, http://kbroman.org/steps2rr/
++ Wikipedia (2016), System kontroli wersji, https://pl.wikipedia.org/wiki/System_kontroli_wersji
+
+
