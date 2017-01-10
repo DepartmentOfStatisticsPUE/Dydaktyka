@@ -147,6 +147,11 @@ Tutoriale:
 ## Literature
 
 + Broman (2016), initial steps toward reproducible research, http://kbroman.org/steps2rr/
++ GitHub (2016), GitBook, https://github.com/GitbookIO/gitbook
++ Peng, Kross, and Anderson (2017), Mastering Software Development in R, https://bookdown.org/rdpeng/RProgDA/
 + Wikipedia (2016), System kontroli wersji, https://pl.wikipedia.org/wiki/System_kontroli_wersji
++ Xie (2016) bookdown: Authoring Books and Technical Documents with R Markdown, https://bookdown.org/yihui/bookdown/
+
+
 
 
