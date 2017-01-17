@@ -152,6 +152,9 @@ Tutoriale:
 + Wikipedia (2016), System kontroli wersji, https://pl.wikipedia.org/wiki/System_kontroli_wersji
 + Xie (2016) bookdown: Authoring Books and Technical Documents with R Markdown, https://bookdown.org/yihui/bookdown/
 
+Inne: 
++ http://projecttemplate.net/getting_started.html
+
 
 
 
