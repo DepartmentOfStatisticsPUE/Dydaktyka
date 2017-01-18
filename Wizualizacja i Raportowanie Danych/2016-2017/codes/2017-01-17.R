@@ -26,7 +26,7 @@ dane_2013 %>%
          c4_f = c4.1 == -2) %>% 
   count(c1_f,c2_f,c4_f) %>%
   summary()
-
+  
 ### usunięcie braków danych
 dane_2013_bez_brak <- 
   subset(dane_2013, subset = !is.na(C2))
