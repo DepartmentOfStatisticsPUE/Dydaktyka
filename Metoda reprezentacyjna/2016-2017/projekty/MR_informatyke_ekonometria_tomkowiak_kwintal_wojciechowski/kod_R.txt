@@ -1,0 +1,195 @@
+##Analiza stanu cywilnego oraz sytuacji zawodowej u partnera
+
+library(survey)
+load("C:/Users/Grzegorz/Downloads/bkl_2010_2014.RData")
+
+
+##2014
+rok_2014 <- subset(x = bkl_2010_2014,edycja == 2014, m4_cywil)
+options(survey.lonely.psu = 'adjust')
+
+##m4_cywil stan cywilny
+##malz jest w malzenstwie
+##m4_1 wczesniej byl w zwiazku malzenskim
+##m4_2 pierwszy zwiazek malzenski
+##m4_3_1 praca w pe³nym wymiarze
+##m4_3_2 praca w niepe³nym wymiarze
+##m4_3_3 czasowa przerwa w pracy
+##m4_3_4 bezrobotny
+##m4_3_5_emre renta/emerytura
+##m4_3_5_1em emerytura
+##m4_3_5_2re renta
+##m4_3_6 uczy sie
+##m4_3_7 zajmuje se domem
+##m4_4_4 Wykszta³cenie wspó³ma³¿onka/partnera
+
+schemat_2010 <- svydesign(
+  ids=~sGUS,
+  strata = ~kodpod + miejsce + m1_plec +wiek_4k,
+  weights =~waga_pop,
+  data=rok_2010
+)
+schemat_2010
+
+schemat_2014 <-svydesign(
+  ids=~sGUS,
+  strata = ~kodpod + miejsce + m1_plec +wiek_4k,
+  weights =~waga_pop,
+  data=rok_2014
+)
+schemat_2014
+
+
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ wykszt_5k,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+
+
+
+#liczymy udzia³ ... w Polsce w 2010 i 2014
+svytotal(x=~m4_cywil, design=schemat_2010)
+svytotal(x=~m4_cywil, design=schemat_2014)
+
+svytotal(x=~malz, design=schemat_2010)
+svytotal(x=~malz, design=schemat_2014)
+
+svytotal(x=~m4_1, design=schemat_2010)
+svytotal(x=~m4_1, design=schemat_2014)
+
+svytotal(x=~m4_2, design=schemat_2010)
+svytotal(x=~m4_2, design=schemat_2014)
+
+svytotal(x=~m4_3_1, design=schemat_2010)
+svytotal(x=~m4_3_1, design=schemat_2014)
+
+svytotal(x=~m4_3_2, design=schemat_2010)
+svytotal(x=~m4_3_2, design=schemat_2014)
+
+svytotal(x=~m4_3_3, design=schemat_2010)
+svytotal(x=~m4_3_3, design=schemat_2014)
+
+svytotal(x=~m4_3_4, design=schemat_2010)
+svytotal(x=~m4_3_4, design=schemat_2014)
+
+svytotal(x=~m4_3_5_emre, design=schemat_2010)
+svytotal(x=~m4_3_5_emre, design=schemat_2014)
+
+svytotal(x=~m4_3_5_1em, design=schemat_2010)
+svytotal(x=~m4_3_5_1em, design=schemat_2014)
+
+svytotal(x=~m4_3_5_2re, design=schemat_2010)
+svytotal(x=~m4_3_5_2re, design=schemat_2014)
+
+svytotal(x=~m4_3_6, design=schemat_2010)
+svytotal(x=~m4_3_6, design=schemat_2014)
+
+svytotal(x=~m4_3_7, design=schemat_2010)
+svytotal(x=~m4_3_7, design=schemat_2014)
+
+svytotal(x=~m4_4, design=schemat_2010)
+svytotal(x=~m4_4, design=schemat_2014)
+
+
+
+
+svymean(x=~malz, design=schemat_2014)
+hist(rok_2014$m4_3_5__1em)
+
+svytotal(x=~BAEL_bezro, design = schemat_2014)
+
+
+
+summary(1/rok_2014$m4_cywil)
+
+svyby(formula = ~m4_4,
+      by=~miejsce + m1_plec,
+      design = schemat_2014,
+      FUN=svymean,
+      vartype = 'cv'
+)
+
+
+
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_cywil,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+
+<- svyby(
+  formula = ~BAEL_bezro,
+  by = ~ malz,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svymean(x=~m4_cywil, design=schemat_2014, na.rm=TRUE)
+svymean(x=~malz, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_1, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_2, design=schemat_2014, na.rm=TRUE)
+
+svymean(x=~m4_3_1, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_2, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_3, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_4, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_5_emre, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_6, design=schemat_2014, na.rm=TRUE)
+svymean(x=~m4_3_7, design=schemat_2014, na.rm=TRUE)
+
+
+
+
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_4,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_1,
+  design = schemat_2014,
+  FUN =svymean
+)
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_2,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_3,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_4,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_5_emre,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svyby(
+  formula = ~BAEL_bezro,
+  by = ~ m4_3_6,
+  design = schemat_2014,
+  FUN =unwtd.count
+)
+svyby(
+  formula = ~BAEL_sytzaw,
+  by = ~ m4_3_7,
+  design = schemat_2014,
+  FUN =svymean
+)
+
+

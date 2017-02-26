@@ -3,12 +3,6 @@ library(haven)
 library(tidyr)
 dane <- read_spss('Wizualizacja i Raportowanie Danych/2016-2017/datasets/BKL_studenci_1_4ed.sav')
 
-dim(dane)
-
-###
-names(dane) <- tolower(names(dane)) 
-
-
 dane %>%
   count(edycja,C2)
 

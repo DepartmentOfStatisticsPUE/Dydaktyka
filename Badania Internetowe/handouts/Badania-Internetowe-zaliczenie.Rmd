@@ -1,0 +1,18 @@
+---
+title: "Badania Internetowe - zaliczenie"
+author: "Maciej Beręsewicz"
+date: "2/8/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Kryteria zaliczenia
+
+Aby zaliczyć przedmiot należy wykonać dwa projekty:
+
+1. W dowolny sposób przeprowadzić analizę aby zminimalizowac RMSE 
+2. Analiza aktywności posłów na Twitterze
+
