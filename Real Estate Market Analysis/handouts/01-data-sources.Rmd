@@ -129,30 +129,31 @@ According to spatial criterion:
 
 # Research on Real Estate Market in Poland by Central Statistical Office (selected)
 
-+ WARUNKI ŻYCIA LUDNOŚCI, POMOC SPOŁECZNA
-    + 1.25.01(064) Budżety gospodarstw domowych
-    + 1.25.08(067) Europejskie badanie warunków życia ludności (EU-SILC)
-    + 1.25.12(070) Zjawisko ubóstwa oraz procesy wykluczenia społecznego
-+ MIESZKANIA, INFRASTRUKTURA KOMUNALNA
-    + 1.26.01(073) Gospodarowanie zasobami mieszkaniowymi
-    + 1.26.04(074) Obrót nieruchomościami
-    + 1.26.06(075) Infrastruktura techniczna sieci wodociągowych i kanalizacyjnych, ciepłowniczych, gazu z sieci oraz energii
-elektrycznej
-    + 1.26.08(076) Odpady komunalne oraz utrzymanie czystości i porządku w gminach
-    + 1.26.09(077) Badanie cen nieruchomości mieszkaniowych i komercyjnych
-    + 1.26.10(078) Charakterystyka zasobów budynkowych
++ LIVING CONDITIONS, SOCIAL ASSISTANCE
+    + 1.25.01(064) Household budgets
+    + 1.25.08(067) European Union Statistics on Income and Living Conditions
+    + 1.25.12(070) Poverty and social exclusion
++ DWELLINGS, COMMUNAL INFRASTRUCTURE
+    + 1.26.01(073) Housing management
+    + 1.26.04(074) Property trade
+    + 1.26.06(075) Water, sewerage, heating, gas and electricity infrastructure
+    + 1.26.08(076) Municipal solid waste and the maintenance of municipalities in a clean and orderly condition
+    + 1.26.09(077) A survey of prices of housing and commercial properties
+    + 1.26.10(078) Description of housing resources
+
+Source: [Statistical Research Program of Public Statistics for 2017](http://bip.stat.gov.pl/dzialalnosc-statystyki-publicznej/program-badan-statystycznych/pbssp-2017/)
 
 # Research on Real Estate Market in Poland by Central Statistical Office (selected)
 
-+ DZIAŁALNOŚĆ ROLNICZA I LEŚNA
-    + 1.45.02(124) Gospodarka ziemią
-    + 1.45.03(125) Użytkowanie gruntów
-+ DZIAŁALNOŚĆ BUDOWLANA
-    + 1.47.01(157) Produkcja budowlano-montażowa; koszty w układzie kalkulacyjnym
-    + 1.47.04(158) Wydane pozwolenia na budowę i zgłoszenia z projektem budowlanym budowy obiektów budowlanych oraz efekty działalności budowlanej
-    + 1.47.05(159) Obiekty budowlane oddane do użytkowania
-    + 1.47.06(160) Nakazy rozbiórki obiektów budowlanych
-+ BADANIA REGIONALNE 
++ AGRICULTURAL AND FORESTRY ACTIVITIES   
+    + 1.45.02(124) Land management
+    + 1.45.03(125) Land use
++ CONSTRUCTION ACTIVITIES
+    + 1.47.01(157) Construction and assembly production; costs listed  by function of expense
+    + 1.47.04(158) Building permits issued and building notices submitted for the construction of buildings; effects of construction activities
+    + 1.47.05(159) Buildings completed
+    + 1.47.06(160) Demolition orders issued
++ REGIONAL STUDIES
 
 Source: [Statistical Research Program of Public Statistics for 2017](http://bip.stat.gov.pl/dzialalnosc-statystyki-publicznej/program-badan-statystycznych/pbssp-2017/)
 
