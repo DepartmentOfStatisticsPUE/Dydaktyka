@@ -1,0 +1,191 @@
+---
+title: "Modelowanie zmiennych wielomianowych"
+author: "Maciej Beręsewicz"
+date: ""
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+library(haven)
+library(mlogit)
+library(mnlogit)
+library(ggplot2)
+library(dplyr)
+theme_set(theme_bw())
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newcommand{\bx}{\boldsymbol{x}}
+\newcommand{\bX}{\boldsymbol{X}}
+\newcommand{\b0}{\boldsymbol{0}}
+\newcommand{\bz}{\boldsymbol{z}}
+\newcommand{\bZ}{\boldsymbol{Z}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+
+# Wstęp
+
++ Dane jakościowe w ekoomii
++ Mikroekonometria
++ Modele mikroekonometryczne
+
+# Dane jakościowe w ekoomii
+
++ badanie zachowań ekonomicznych jednostek (konsumentów, gospodarstw domowych, firm)
++ analiza danych (mikrodanych) na poziomie indywidualnym (jednostkowym)
++ niski poziom agregacji mikrodanych (dane szczegółow)
++ możliwość zaobserwowania zjawisk lub zdarzeń niewidocznych w danych zagregowanych
++ nielinowy rozkład obserwacji oraz wykorzystanie nieliniowych modeli i metod estymacji parametrów,
++ niejednorodność obserwacji (heterogeniczność badanych jednostek)
++ duża liczba obserwacji (masowość mikrodanych)
++ przekrojowy charakter mikrodanych
+
+
+# Mikroekonometria -- czym jest?
+
+Mikroekonometria jest dynamicznie rozwijającą się gałęzią ekonometrii, o czym świadczą m.in. wyróżnienia Nagrodą Nobla jej wybitnych reprezentantów: Jamesa J. Heckman'a i Daniela L McFadden'a, badających mikrodane metodami wyborów dyskretnych.
+
+# Mikroekonometria -- literatura
+
+
+![](https://www.profinfo.pl/img/min/401/154/40154839_2_powieksz-okladke_300x452_FFFFFF_pad.jpg)
+
+Mikroekonometria. Modele i metody analizy danych indywidualnych -- Monika Bazyl , Marek Gruszczyński (red. nauk.) , Monika Książek , Marcin Owczarczuk , Adam Szulc , Arkadiusz Wiśniowski , Bartosz Witkowski, https://www.profinfo.pl/p,,44839.html
+
+
+# Mikroekonometria -- literatura
+
+![](https://www.profinfo.pl/img/min/401/438/40438027_2_zbior-zadan-z-mikroekonometrii_300x517_FFFFFF_pad.jpg)
+
+
+Zbiór zadań z mikroekonometrii. Modele i metody analizy danych indywidualnych -- Marek Gruszczyński, Damian Przekop, https://www.profinfo.pl/p,,328027.html
+
+# Mikroekonometria -- literatura
+
+![](https://www.ksiegarnia.beck.pl/media/catalog/product/cache/1/image/290x/040ec09b1e35df139433887a97daa66f/1/0/10234-mikroekonometryczne-metody-badania-preferencji-konsumentow-z-wykorzystaniem-programu-r-andrzej-bak-okladka.png)
+
+Mikroekonometryczne metody badania preferencji konsumentów z wykorzystaniem programu R -- Andrzej Bąk, https://www.ksiegarnia.beck.pl/10234-mikroekonometryczne-metody-badania-preferencji-konsumentow-z-wykorzystaniem-programu-r-andrzej-bak
+
+
+# Modele mikroekonoemtryczne
+
++ modele dwumianowe:
+    + modele liniowe prawdopodobieństwa
+    + modele logitowe i probitowe
+    + modele komplementarne log-log
+    + modele log-liniowe (tablice kontyngencji)
++ modele wielomianowe:
+    + kategorii nieuporządkowanych
+    + kategorii uporządkowanych
++ modele klas ukrytych
++ modele przeżycia (trwania)
++ modele zmiennych ograniczonych
+
+
+# Modele wielomianowe
+
++ Kategorie nieuporządkowane, np:
+    + produkty marki A, B, C, D
+    + wybór środka transportu: samochód, tramwaj, autobus, rower czy piechotą
+    + wybór uczelni wyższej: UEP, UAM, PP
++ Kategorie uporządkowane, np:
+    + oceny w szkole
+    + ocena na skali np. likerta
+    
+
+Skupimy się na kategoriach nieuporządkowanych i modelach, które możemy w tym celu wykorzystać:
+
++ wielomianowy model logitowy (i jego rozszerzenia, ang. multinomial logit model)
++ warunkowy model logitowy (i jego rozrzeszenia, ang. conditional (multinomial) logit model)
+
+# Modele wielomianowe -- wielomianowy model logitowy
+
++ Jest uogólnieniem modelu logitowego dla danych binarnych
++ Model można przedstawić w następujący sposób:
+    
+$$
+P_{ki} = \frac{exp(\bx_k^T\bbeta_i)}{\sum_{l=1}^nexp(\bx_k^T\bbeta_l)},
+$$
+
+przy czym $\bbeta_n=\b0$ (kategoria referencyjna), gdzie $P_{ki}$ to prawdopodobieństwo wyboru $i$-tej kategorii przy $k$-tym stanie zmiennych objaśniających, $\bx_k^T$ wektor reprezentujący $k$--ty wiersz macierzy $\bX$ (zmiennch objaśniających), który zawiera charakterystyki respondentów, których preferencje produktów lub usług są przedmiotem badań (charakterystyki respondentów są stałe względem tych produktów), $\bbeta_i$ to wektor parametrów związany z $i$-tą kategorią zmiennej objaśnianej.
+
+# Modele wielomianowe -- warunkowy model logitowy
+
++ Jest uogólnieniem wielomianowego modelu logitowego
++ Podstawowym kryterium różniącym te dwa modele jest charakter zmiennych objaśniających
++ W modelu warunkowym zakłada się, że $\bX$ opisuje zmienne obiekty będące przedmiotem wyboru.
++ Modelujemy w tym przypadku prawdopodobieństwo wyboru $i$-tego profilu ze zbioru luczącego $n$ elementów, dane jest to wzorem:
+
+$$
+P_{ki} = \frac{exp(\bz_{ki}^T\balpha)}{\sum_{l=1}^nexp(\bz_{kl}^T\balpha)},
+$$
+
+gdzie: $\bz_{ki}^T$ -- $k$-ty wektor macierzy $\bZ$ opisujący $i$-tą opcję, $\balpha$ to wektor parametrów (wartość $\alpha_j$ związana jest z $j$-ą zmienną objaśniającą).
+
+
+# Przykład
+
+Źródło: http://stats.idre.ucla.edu/sas/output/multinomial-logistic-regression/
+
+Opis:
+
++ 200 studentów
++ zmienne:
+    + ID -- identyfikator studenta
+    + FEMALE -- płeć 
+    + ICE_CREAM -- zmienna określająca wybór lodów (1= vanilla, 2= chocolate, 3 = strawberry)
+    + VIDEO -- wyniki w grach komputerowych
+    + PUZZLE -- wyniki w puzzlach 
+
+```{r wczytanie danych i wymiary}
+dane_lody <- read_sas('mlogit.sas7bdat')
+dim(dane_lody)
+```
+
+# Przykład 
+
+```{r jak wyglada zbior}
+dane_lody <- dane_lody %>%
+  mutate(ICE_CREAM = factor(x = ICE_CREAM,
+                            levels = 1:3,
+                            labels = c('Wanilia','Czekolada','Truskawka')),
+         FEMALE = factor(x =  FEMALE,
+                         levels = 0:1,
+                         labels = c('Nie','Tak')))
+head(dane_lody)
+```
+
+# Przykład -- opis zbioru danych
+
+```{r wykresy pudelkow, fig.keep='all'}
+ggplot(data = dane_lody,
+       aes(x = ICE_CREAM,
+           y = VIDEO)) + geom_boxplot()
+ggplot(data = dane_lody,
+       aes(x = ICE_CREAM,
+           y = PUZZLE)) + geom_boxplot()
+```
+
+# Przykład -- przygotowanie danych
+
+```{r przygotowanie danych do mlogit}
+dane_do_modelu <- mlogit.data(dane_lody, 
+                              choice = 'ICE_CREAM', 
+                              shape = 'wide')
+
+head(dane_do_modelu, n = 10)
+```
+
+# Przykład -- modelowanie
+
+```{r wielomianowy model regresji}
+model1 <- mlogit(ICE_CREAM ~ 0 | FEMALE + VIDEO + PUZZLE, 
+                 data = dane_do_modelu,
+                 reflevel = 'Truskawka')
+
+summary(model1)
+```
+
+# Przykład na podstawie danych z diagnozy społecznej
+
+

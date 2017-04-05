@@ -1,0 +1,128 @@
+---
+title: "Choice Based Conjoint in R"
+output: html_notebook
+---
+
+# Wczytanie potrzebnych pakietów
+
+```{r, warnings = FALSE, messages = FALSE}
+library(dplyr)
+library(tidyr)
+library(mlogit)
+library(ggplot2)
+library(stringi)
+```
+
+# Wczytujemy dane
+
+W badaniu przeprowadzono następujące badanie metodą Choice Based Conjoint zadając pytanie: CBC1. Proszę pomyśleć, że postanawia Pan/i obejrzeć film. Z której z tych propozycji by Pan/i skorzystał/a w pierwszej kolejności?
+
++ Kanał:
+    + Film ściągnięty z nielegnych źródeł z Internetu
+    + Film ściągnięty z leganych źródeł z Internetu
+    + Film wypożyczony na DVD
+    + Film oglądany w kinie
+    + Film kupiony na własność
++ Cena: 
+    + 0 zł
+    + 5 zł
+    + 10 zł
+    + 15 zł
+    + 20 zł
+    + 30 zł
+    + 50 zł tylko kupiony
++ Jakość obrazu:
+    + słaba jakość obrazu i dźwięku
+    + standardowa obrazu i dźwięku
+    + wysoka jakość obrazu i dźwięku (HD)
++ Nowoczesność:
+    + nowość - dopiero po premierze
+    + dość nowy, ok. 6 miesięcy po premierze
+    + film sprzed 1-2 lat
+    + klasyka sprzed paru lat
+
+
+```{r wczytanie danych}
+## naprawiamy problem z kodowaniem znaków (WINDOWS > OS X, CP1250 > UTF-8)
+system('iconv -f CP1250 -t UTF-8 data/dane_sondaz.csv > data/dane_sondaz_good.csv')
+obiegi <- data.table::fread('data/dane_sondaz_good.csv', encoding = 'UTF-8') %>%
+  tbl_df()
+obiegi
+```
+
+
+W ramach każdego ekranu respondenci mieli 3 alternatywy do wyboru, które oznaczone są jako podkreślniki w nazwach kolumn odnoszących się do danego atrybutu np. `Cena_C01_1` oznacza, że w ramach pierwszego ekranu ta kolumna odnosi się do pierwszej alternatywy.
+
+Zmienne określające wybory zaczynają się od `CBC`, poniżej przykład
+
+```{r wybory}
+obiegi %>% 
+  select(RESPONDENT_ID, starts_with('CBC'))
+```
+
+Skąd wiem, że w ramach każdego ekranu były 3 wybory? Wystarcyz spojrzeć na wartości, jakie się pojawiają (jak i na subskrypty w ramach zmiennych określających atrybuty)
+
+```{r}
+obiegi %>%
+  count(CBC1)
+```
+
+
+# Przetwarzanie danych
+
+Dane musimy doprowadzić do odpowiedniego formatu aby przeprowadzić analizę conjoint z wykorzystaniem wielomianowej regresji logitowej (ang. multinomial logistic regression).
+
+```{r}
+obiegi_do_analizy <- obiegi %>%
+  select(RESPONDENT_ID, starts_with('CBC'), matches('^(Cena|Jakosc|Kanal|Nowoczesnosc)')) %>%
+  gather(key = choice_number, value = choice_id, starts_with('CBC')) %>%
+  gather(key = attribute, value = attribute_value, -RESPONDENT_ID, -choice_number, -choice_id) %>%
+  separate(col = attribute, into = c('attr','choice_number_2', 'set_number'), sep = '_') %>%
+  mutate(flag = as.numeric(stri_extract_last_regex(str=choice_number,pattern='\\d+')) == 
+           as.numeric(stri_extract_last_regex(str=choice_number_2,pattern='\\d+'))) %>%
+  filter(flag) %>%
+  select(RESPONDENT_ID, choice_number, choice_id, attr, attribute_value, set_number) %>%
+  spread(attr,attribute_value)
+
+head(obiegi_do_analizy)
+```
+
+Sprawdzę czy dane są dobrze przygotowane tj. każdy z respondentów powinien być obecny 12 (ekranów)*3 (alternatywy) = 36 razy.
+```{r}
+obiegi_do_analizy %>%
+  count(RESPONDENT_ID) %>%
+  count(n)
+```
+
+Dodatkowe przetwarzanie w celu uzyskania ostatecznego formatu danych
+
+```{r}
+obiegi_do_analizy <- obiegi_do_analizy %>%
+  mutate(numer_ekranu = as.numeric(stri_extract(choice_number,regex ='\\d+')),
+         wybor = as.numeric(choice_id == set_number),
+         numer_alternatywy = as.numeric(set_number),
+         atrybut_cena = factor(x = Cena,
+                               levels = c('0', '5', '10', '15', '20', '30', '50'),
+                               labels = c('0', '5', '10', '15', '20', '30', '50'),
+                               ordered = TRUE),
+         atrybut_jakosc = as.factor(Jakosc),
+         atrybut_kanal = as.factor(Kanal),
+         atrybut_nowoczesnosc = as.factor(Nowoczesnosc)) %>%
+  rename(respondent_id = RESPONDENT_ID) %>%
+  select(respondent_id,numer_ekranu,numer_alternatywy,wybor,atrybut_cena:atrybut_nowoczesnosc) %>%
+  arrange(respondent_id,numer_ekranu,numer_alternatywy)
+
+obiegi_do_analizy
+  
+```
+
+Na koniec analizy sprawdzmy jak wyglądał układ eksperymentalny w tym badaniu
+
+```{r układ eksperymentalny}
+obiegi_do_analizy %>%
+  count(atrybut_cena,atrybut_jakosc,atrybut_kanal,atrybut_nowoczesnosc,sort = T)
+```
+
+
+# Modelowanie z `mlogit`
+
