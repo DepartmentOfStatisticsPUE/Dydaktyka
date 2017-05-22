@@ -1,0 +1,220 @@
+---
+title: "Detekcja mechanizmu selekcji"
+output: html_notebook
+---
+
+
+# Wstęp
+
+Potrzebujemy następuących pakietów
+
+```{r pakiety, warnings = FALSE, messages = F}
+library(vcdExtra)
+library(gmodels) ## ładne tabele
+library(sjPlot) ## ładne tabele w HTMLu
+library(tidyverse)
+#install.packages("http://smarterpoland.pl/materialy/KTr/CressieReadTest_1.0.tar.gz", 
+#                 repos = NULL, type = "source")
+library(CressieReadTest) ## source http://smarterpoland.pl/materialy/KTr/cr2.pdf
+```
+
+
+Wczytujemy dane dotyczące
+
+```{r}
+load('../data/diagnoza2015.rdata')
+diagnoza2015
+```
+
+
+Naszym celem jest oszacowanie poniższego modelu, gdzie zmienna Interent przyjmuje dwie wartości $\{0,1\}$
+
+$$
+P(Internet = 1 | \boldsymbol{X}) 
+$$
+
+oraz kolejny,  gdzie zmienna Odpowiedź również przyjmuje dwie wartości $\{0,1\}$:
+
+$$
+P(Odpowiedź = 1 | \boldsymbol{X}, Internet = 1) 
+$$
+
+
+
+# Badanie zależności między zmienną jakościową, a innymi zmiennymi
+
+## Tabele
+
+```{r}
+structable(internet ~ klm, diagnoza2015)
+```
+
+```{r}
+CrossTable(diagnoza2015$internet,diagnoza2015$klm)
+```
+
+```{r xtabsjplot, eval= FALSE}
+sjt.xtab(diagnoza2015$klm,diagnoza2015$internet,show.na = T)
+```
+
+```{r xtabsjplot_html, eval= TRUE, echo = FALSE, results='asis'}
+g <- sjt.xtab(diagnoza2015$klm,diagnoza2015$internet, no.output = TRUE)
+cat(g$knitr)
+```
+
+
+
+## Wizualizacja danych
+
+```{r}
+doubledecker(internet ~ klm + plec, diagnoza2015)
+doubledecker(internet ~ woj + plec, diagnoza2015)
+```
+
+
+## Statystyki zależności między dwiema zmiennymi jakościowymi
+
+Aby zbadać zależność między dwoma i więcej zmiennymi możemy wykorzystać następujące testy:
+
++ Test proporcji (ma sens w tabeli $2 \times 2$),
++ Testy oparte na statystyce $\chi^2$:
+    + Test niezależności $\chi^2$,
+    + Test niezależności $\chi^2$ z poprawką Yates'a (dla małych prób, kwestia przybliżenia rozkładu dwumianowego rozkładem $\chi^2$),
+    + statystyka największej wiarygodności $L^2$ (badamy równość proporcji),
+    + statystyka Cressie-Read'a (CR),
+    + test (Cochrana-)Mantel-Haenszel $\chi^2$ -- stosujemy dla 3 zmiennych: zakładamy, że dwie zmienne są warunkowo niezależne, w warstwach utworzonych przez trzecią zmienną.
++ (Dokładny) test Fishera (zwykle dla tabel $2 \times 2$ i małych prób),
++ Test Mantela-Haenszel'a $\chi^2$ -- tylko jeżeli dwie zmienne są na skali porządkowej
+
+Miary zależności:
+
++ współczynnik Yule’a -- dwie zmienne, mające porządek (tak, nie) i traktujemy symetryczne (zmiana porządku w tabeli nie wpływa na statystykę)
++ współczynnik C Pearsona -- dwie zmienne, nie mają porządku, traktujemy symetrycznie (odnosi się do tej i poniższych dwóch)
++ współczynnik V Cramera,
++ współczynnik T Czupurowa,
++ Goodman-Kruskal $\gamma$ -- dla zmiennych na skali porządkowej (`vcdExtra::GKgamma`)
+
+Więcej na -- http://node101.psych.cornell.edu/Darlington/crosstab/TABLE0.HTM
+
+
+## Statystyka $D^2$ Cressie-Read'a
+
+\[
+D^2=\frac{2}{\lambda(\lambda+1)}\sum_{i=1}^{r}\sum_{j=1}^{c} O_{ij}\left[\left(\frac{O_{ij}}{E_{ij}}\right)^{\lambda}-1\right]
+\]
+
+
+gdzie:
+
++ $O_{ij}$ – empiryczna liczebność $i$-tego wiersza oraz $j$-tej kolumny,
++ $E_{ij}$ – oczekiwana liczebność $i$-tego wiersza oraz $j$-tej kolumny,
++ $r$ – liczba wierszy,
++ $c$ – liczba kolumn.
+
+
+Dobierając odpowiednią wartość parametru $\lambda$możemy uzyskać wyniki dla kilku różnych testów niezależności opartych na statystyce $\chi^2$. 
+
++ $\chi^2$Pearsona otrzymamy gdy $\lambda=1$, 
++ statystykę Neymana dla $\lambda=-2$ która jest modyfikacją testu $\chi^2$ Pearsona. 
++ statystykę testu $G^2$ największej wiarygodności uzyskamy dla parametru $\lambda\rightarrow 0$, 
++ statystkę Kullback-Leibler otrzymamy gdy $\lambda\rightarrow -1$,
++ statystyka Freemana i Tukeya otrzymamy dla $\lambda=-\frac{1}{2}$. 
+
+Na bazie statystyki  $\chi^2$ można obliczyć kilka współczynników, które określają siłę związku badanych zmiennych.
+
++ współczynnik Yule'a – ma zastosowanie dla tabel o wymiarach $2\times 2$ oraz $\phi\in\langle -1;1\rangle$:
+
+$$
+\phi=\sqrt{\frac{\chi^2}{n}}
+$$
+
++ współczynnik Pearsona – ma zastosowanie dla tabel o wymiarach $r\times c$ oraz $C\in\left\langle 0; \sqrt{\frac{min(r,c)-1}{min(r,c)}} \right\rangle$:
+
+$$
+C=\sqrt{\frac{\chi^2}{\chi^2+n}}
+$$
+
++ współczynnik Cramera – nie wskazuje kierunku korelacji oraz $V\in\langle 0; 1\rangle$:
+
+$$
+V=\sqrt{\frac{\chi^2}{n(min(r,c)-1)}}
+$$
+
++ współczynnik Czupurowa – nie wskazuje kierunku korelacji oraz $T\in\langle 0; 1\rangle$:
+
+$$T=\sqrt{\frac{\chi^2}{n\sqrt{(r-1)(c-1)}}}$$
+
+Poniżej są przedstawione obliczenia dla wszystkich omówionych testów oraz współczynniki korelacji:
+
+
+```{r}
+m <- xtabs(~ woj+ internet, diagnoza2015)
+structable(m)
+CressieReadTest::allcr.test(m)
+vcd::assocstats(m)
+```
+
+
+## Statystyka (Cochrana-)Mantel-Haenszel $\chi^2$
+
+Zakładamy tabelę $2\times2\times K$ 
+
+$$
+Q_{CMH}=\frac{\left[ \sum_{k} (n_{11k}-\mu_{11k}) \right]^2}{\sum_{k}var(n_{11k})}
+$$
+
+gdzie 
+
+$$
+\mu_{11k} = E(n_{11k}) = n_{1+k}n_{+1k}/n_{++k},
+$$
+
+$$
+var(n_{11k}) = \frac{n_{1+k}n_{2+k}n_{+1k}n_{+2k}}{n^2_{++k}(n_{++k}-1)},
+$$
+
+
+Aby ją obliczyć korzystamy z funkcji `mantelhaen.test()`
+
+```{r}
+int_plec_klm <- xtabs(~internet + plec + klm, diagnoza2015)
+structable(int_plec_klm)
+mantelhaen.test(int_plec_klm) ## tylko tabele 2x2
+vcdExtra::CMHtest(int_plec_klm, overall = T)$ALL ## uogólnienie na I x J x K tabel
+```
+
+## Statystyka Mantela-Haenszel'a $\chi^2$
+
+Wykorzystujemy tylko wtedy jeżeli dane są na skali porządkowej! Hipoteza alternatywna jest liniowa zależność między
+
+$$
+Q_{MH} = (n-1) r^2 \sim \chi^2(1),
+$$
+
+gdzie $n$ to wielkość próby, a $r$ to współczynnik korelacji liniowej Pearsona. Statystykę tę możemy wykorzystać do weryfikacji następującego układu hipotez
+
++ $H_0$: brak związku między zmiennymi,
++ $H_1$: występuje związek między zmiennymi.
+
+Możemy ją zbadać wykorzystując funkcję `vcdExtra::CMHtest()`
+
+
+
+# Modelowanie mechanizmu selekcji
+
+## Iloraz szans
+
+```{r}
+summary(oddsratio(int_plec_klm))
+woolf_test(int_plec_klm) ## 
+```
+
+## Regresja logistyczna
+
+## Drzewa klasyfikacyjne
+
+## Ocena jakości modeli
+
+
+# Ważenie z wykorzystaniem modelu
+

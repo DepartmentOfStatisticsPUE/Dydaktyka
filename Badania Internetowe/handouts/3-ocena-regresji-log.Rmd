@@ -1,0 +1,113 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Regresja logistyczna -- ocena modelu
+
+```{r}
+library(ResourceSelection)
+library(BaylorEdPsych)
+library(rms)
+```
+
+## Testowanie hipotez
+
+W pierwszej kolejności w odniesieniu do istotności poszczególnych parametrów, w którym testujemy następujący układ hipotez
+
+$$
+\begin{cases}
+H_{0}: \beta_k &= 0 \\
+H_{1}: \beta_k &\neq 0 \\
+\end{cases}
+$$
+
+Statystyka Walda (testowa) ma postać następującą:
+
+$$
+z_{k} = \frac{\beta_k}{\sqrt{\widehat{VAR}(\beta_k)}} \sim N(0,1)
+$$
+
+Więc aby zweryfikować układ hipotez patrzymy na $|Z_k| > Z_{1-\alpha/2}$. Jednakże, w związku z tym, że ten test ma zwykle większy błąd I rodzaju niż przyjęty poziom $\alpha$ stosuje się zwykle test LRT -- Likelihood Ratio Test. Ten test wykorzystywany jest zwykle w odniesieniu 
+
+$$
+\Lambda = \frac{\mbox{LogLik modelu ze zmiennymi}}{\mbox{LogLik model ze stałą}} \sim \chi^2_p,
+$$
+
+gdzie $p$ to liczba parametrów modelu. W $R$ do tego celu możemy wykorzystać funkcję `stats::anova()` oraz `car::Anova()`. Różnią się tym jak porównywane sa parametry modelu. Załózmy, że mamy model, w którym mamy dwie zmienne $X_1$ oraz $X_2$ i w takiej kolejności zapisujemy model $y \sim X_1 + X_2 + X_1:X_2$ (`:` oznacza interakcję) W tym kontekście rozważmy typy testowanych hipotez
+
++ Typ 1 (`stats::anova()`) -- sekwencyjnie:
+    + najpierw testujemy $X_1$ w odniesieniu do modelu ze stałą,
+    + potem testujemy $X_2$ w odniesieniu do modelu z $X_1$,
+    + na końcu testujemy $X_1:X_2$ w odniesieniu do modelu z $X_1$ oraz $X_2$.
++ Typ 2 (`car::Anova(Y ~ X_1*X_2, type = 2)`):
+    + najpierw testujemy $X_1$ w odniesieniu do modelu z $X_2$,
+    + potem testujemy $X_2$ w odniesieniu do modelu z $X_1$,
+    + na końcu testujemy $X_1:X_2$ w odniesieniu do modelu z $X_1$ oraz $X_2$.
++ Typ 3  (`car::Anova(Y ~ X_1*X_2, type = 3, contrasts=list(X_1=contr.sum, X_2=contr.sum))`):
+    + najpierw testujemy $X_1$ w odniesieniu do modelu z $X_2$ oraz $X_1:X_2$,
+    + potem testujemy $X_2$ w odniesieniu do modelu z $X_1$ oraz $X_1:X_2$,
+    + na końcu testujemy $X_1:X_2$ w odniesieniu do modelu z $X_1$ oraz $X_2$.
+    
+
+W literaturze jest na ten temat spora dysuksja. Według niektórych warto skorzystać z typu 2. Aby przeprowadzić w R procedurę testu LRT należy użyć następujących kodów:
+
++ `stats::anova(model, test = 'Chisq')` lub `stats::anova(model1, model2,..,modelK, test = 'Chisq')` -- Typ 1
++ `stats::Anova(model, test = 'LR')` -- Typ 1
+
+## Miary jakości modelu
+
+
+McFadden -- McFadden Pseudo-R^2 -- Nie jest to jednak współczynnik unormowany w przedziale [0, 1] a jego maksymalna wartość jest mniejsza od 1. Przyjmuje się przy tym, że wartości z przedziału 0,2-0,4 są w zupełności zadowalające.
+
+$$
+R^2_{McF} = 1 – ln(L_{M}) / ln(L_{0})
+$$
+
+Adj.McFadden	 -- McFadden Adjusted Pseudo-R^2
+
+$$
+R^2_{adj-McF} = 1 – ln(L_{M} - p - 1) / ln(L_{0})
+$$
+
+Cox.Snell	 -- Cox and Snell Pseudo-R^2 (also known as ML Pseudo-R^2)
+
+$$
+R^2_{C\&S} = 1 – exp\left( \frac{-2ln(L_0) + 2ln(L_M)}{n}\right)
+$$
+
+Nagelkerke	-- Nagelkerke PseudoR^2 -- unormowany do przedziału [0,1]
+
+$$
+R^2_N = 1 - \frac{1 - exp^{(-2/n (ln(L_M) - lm(L_0)))}}{1 - exp^{-2/nln(L_0)}}
+$$
+
+McKelvey.Zavoina	 -- McKelvey and Zavoina Pseudo-R^2
+Effron	 -- Effron Pseudo-R^2
+Count	 -- Count Pseudo-R^2, number of correctly classified cases, using $\hat{\pi}> .50$ as the cutoff
+Adj.Count	-- Adjusted Count Pseudo-R^2
+
+
+## Przykład z pakietem `rms`
+
+```{r}
+load('../data/diagnoza2015.rdata')
+diagnoza2015$internet_model <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015
+```
+
+```{r}
+model1 <- glm(internet_model ~ factor(woj), data = diagnoza2015, family = binomial())
+model2 <- glm(internet_model ~ factor(woj) + plec, data = diagnoza2015, family = binomial())
+anova(model1, model2, test = 'Chisq') ## LRT
+```
+
+
+```{r}
+ResourceSelection::CAIC(model1,model2)
+```
+
+```{r}
+sapply(list(model1,model2),BaylorEdPsych::PseudoR2)
+```
+

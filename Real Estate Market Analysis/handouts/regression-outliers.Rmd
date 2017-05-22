@@ -1,0 +1,81 @@
+---
+title: "Regression and outliers"
+output: html_notebook
+---
+
+# Load packages
+
+```{r}
+library(dplyr)
+library(extremevalues)
+library(lmtest)
+```
+
+
+# Read the data
+
+```{r}
+rema <- read.csv2('../data-raw/project_data_train.csv', 
+                 header = T, 
+                 stringsAsFactors = F, 
+                 dec = '.')
+rema
+```
+
+
+```{r}
+plot(rema$trans_dwelling_price, rema$trans_dwelling_floor_area)
+plot(log(rema$trans_dwelling_price), rema$trans_dwelling_floor_area)
+plot(log(rema$trans_dwelling_price), log(rema$trans_dwelling_floor_area))
+```
+
+## Testing regression assumptions
+
+```{r}
+m1 <- lm(trans_dwelling_price ~ trans_dwelling_floor_area, data= rema)
+summary(m1)
+plot(m1)
+```
+
+```{r}
+m1_measures <- influence.measures(m1)
+str(m1_measures,1)
+head(m1_measures$infmat)
+```
+
+
+### the Breusch-Pagan test against heteroskedasticity.
+
+```{r}
+lmtest::bptest(m1)
+```
+
+
+### Rainbow test for linearity.
+
+```{r}
+lmtest::raintest(trans_dwelling_price ~ trans_dwelling_floor_area, 
+                 data = rema,
+                 order.by = ~trans_dwelling_floor_area)
+```
+
+### RESET test 
+
+Another appropriate procedure is the RESET test, which tests whether some auxiliary variables improve the fit significantly. 
+
+```{r}
+lmtest::resettest(trans_dwelling_price ~ trans_dwelling_floor_area,
+                  data = rema,
+                  power = 2,
+                  type = "regressor")
+```
+
+```{r}
+lmtest::raintest(trans_dwelling_price ~ trans_dwelling_floor_area,
+                  order.by = ~trans_dwelling_floor_area,
+                  data = rema)
+lmtest::raintest(trans_dwelling_price ~ trans_dwelling_floor_area + I(trans_dwelling_floor_area^2),
+                 order.by = ~trans_dwelling_floor_area,
+                data = rema)
+```
+

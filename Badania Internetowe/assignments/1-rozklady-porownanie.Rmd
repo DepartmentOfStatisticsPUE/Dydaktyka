@@ -1,0 +1,56 @@
+---
+title: "Porównanie rozkładów w próbie i populacji"
+output: html_notebook
+---
+
+# Wczytanie pakietów
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(stringi)
+load('../data/diagnoza2015.rdata')
+pop <- read_excel('../data-raw/populacja_2015.xlsx',sheet = 2)
+head(diagnoza2015)
+head(pop)
+```
+
+# Porównanie rozkładu według płci
+
+Przygotowuję dane na podstawie Diagnozy społecznej w 2015 roku
+
+```{r}
+plec_woj <- diagnoza2015 %>%
+  count(woj,plec) %>%
+  mutate(p = n/sum(n)) %>%
+  select(-n) %>%
+  spread(plec,p) %>%
+  rename(diagnoza_mez = `1`,
+         diagnoza_kob = `2`)
+plec_woj
+```
+
+```{r}
+pop_plec <- pop %>%
+  mutate(woj = stri_extract(str = Kod, regex = '\\d{3}'),
+         woj = stri_extract(str = woj, regex = '\\d{2}$'),
+         woj = as.numeric(woj)) %>%
+  count(woj,Płeć, wt = Wartosc) %>%
+  filter(Płeć !='ogółem') %>%
+  arrange(woj) %>%
+  mutate(p = n/sum(n)) %>%
+  select(-n) %>%
+  spread(Płeć,p) %>%
+  rename(pop_mez = `mężczyźni`,
+         pop_kob = `kobiety`)
+pop_plec
+```
+Porównujemy 
+
+```{r}
+razem <- pop_plec %>%
+  left_join(plec_woj)
+razem
+```
+

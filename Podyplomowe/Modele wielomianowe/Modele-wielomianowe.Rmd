@@ -1,8 +1,11 @@
 ---
 title: "Modelowanie zmiennych wielomianowych"
 author: "Maciej Beręsewicz"
-date: ""
-output: slidy_presentation
+date: ''
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+  beamer_presentation: default
 ---
 
 ```{r setup, include=FALSE}
@@ -123,69 +126,69 @@ $$
 gdzie: $\bz_{ki}^T$ -- $k$-ty wektor macierzy $\bZ$ opisujący $i$-tą opcję, $\balpha$ to wektor parametrów (wartość $\alpha_j$ związana jest z $j$-ą zmienną objaśniającą).
 
 
-# Przykład
+<!-- # Przykład -->
 
-Źródło: http://stats.idre.ucla.edu/sas/output/multinomial-logistic-regression/
+<!-- Źródło: http://stats.idre.ucla.edu/sas/output/multinomial-logistic-regression/ -->
 
-Opis:
+<!-- Opis: -->
 
-+ 200 studentów
-+ zmienne:
-    + ID -- identyfikator studenta
-    + FEMALE -- płeć 
-    + ICE_CREAM -- zmienna określająca wybór lodów (1= vanilla, 2= chocolate, 3 = strawberry)
-    + VIDEO -- wyniki w grach komputerowych
-    + PUZZLE -- wyniki w puzzlach 
+<!-- + 200 studentów -->
+<!-- + zmienne: -->
+<!--     + ID -- identyfikator studenta -->
+<!--     + FEMALE -- płeć  -->
+<!--     + ICE_CREAM -- zmienna określająca wybór lodów (1= vanilla, 2= chocolate, 3 = strawberry) -->
+<!--     + VIDEO -- wyniki w grach komputerowych -->
+<!--     + PUZZLE -- wyniki w puzzlach  -->
 
-```{r wczytanie danych i wymiary}
-dane_lody <- read_sas('mlogit.sas7bdat')
-dim(dane_lody)
-```
+<!-- ```{r wczytanie danych i wymiary} -->
+<!-- dane_lody <- read_sas('mlogit.sas7bdat') -->
+<!-- dim(dane_lody) -->
+<!-- ``` -->
 
-# Przykład 
+<!-- # Przykład  -->
 
-```{r jak wyglada zbior}
-dane_lody <- dane_lody %>%
-  mutate(ICE_CREAM = factor(x = ICE_CREAM,
-                            levels = 1:3,
-                            labels = c('Wanilia','Czekolada','Truskawka')),
-         FEMALE = factor(x =  FEMALE,
-                         levels = 0:1,
-                         labels = c('Nie','Tak')))
-head(dane_lody)
-```
+<!-- ```{r jak wyglada zbior} -->
+<!-- dane_lody <- dane_lody %>% -->
+<!--   mutate(ICE_CREAM = factor(x = ICE_CREAM, -->
+<!--                             levels = 1:3, -->
+<!--                             labels = c('Wanilia','Czekolada','Truskawka')), -->
+<!--          FEMALE = factor(x =  FEMALE, -->
+<!--                          levels = 0:1, -->
+<!--                          labels = c('Nie','Tak'))) -->
+<!-- head(dane_lody) -->
+<!-- ``` -->
 
-# Przykład -- opis zbioru danych
+<!-- # Przykład -- opis zbioru danych -->
 
-```{r wykresy pudelkow, fig.keep='all'}
-ggplot(data = dane_lody,
-       aes(x = ICE_CREAM,
-           y = VIDEO)) + geom_boxplot()
-ggplot(data = dane_lody,
-       aes(x = ICE_CREAM,
-           y = PUZZLE)) + geom_boxplot()
-```
+<!-- ```{r wykresy pudelkow, fig.keep='all'} -->
+<!-- ggplot(data = dane_lody, -->
+<!--        aes(x = ICE_CREAM, -->
+<!--            y = VIDEO)) + geom_boxplot() -->
+<!-- ggplot(data = dane_lody, -->
+<!--        aes(x = ICE_CREAM, -->
+<!--            y = PUZZLE)) + geom_boxplot() -->
+<!-- ``` -->
 
-# Przykład -- przygotowanie danych
+<!-- # Przykład -- przygotowanie danych -->
 
-```{r przygotowanie danych do mlogit}
-dane_do_modelu <- mlogit.data(dane_lody, 
-                              choice = 'ICE_CREAM', 
-                              shape = 'wide')
+<!-- ```{r przygotowanie danych do mlogit} -->
+<!-- dane_do_modelu <- mlogit.data(dane_lody,  -->
+<!--                               choice = 'ICE_CREAM',  -->
+<!--                               shape = 'wide') -->
 
-head(dane_do_modelu, n = 10)
-```
+<!-- head(dane_do_modelu, n = 10) -->
+<!-- ``` -->
 
-# Przykład -- modelowanie
+<!-- # Przykład -- modelowanie -->
 
-```{r wielomianowy model regresji}
-model1 <- mlogit(ICE_CREAM ~ 0 | FEMALE + VIDEO + PUZZLE, 
-                 data = dane_do_modelu,
-                 reflevel = 'Truskawka')
+<!-- ```{r wielomianowy model regresji} -->
+<!-- model1 <- mlogit(ICE_CREAM ~ 0 | FEMALE + VIDEO + PUZZLE,  -->
+<!--                  data = dane_do_modelu, -->
+<!--                  reflevel = 'Truskawka') -->
 
-summary(model1)
-```
+<!-- summary(model1) -->
+<!-- ``` -->
 
-# Przykład na podstawie danych z diagnozy społecznej
+<!-- # Przykład na podstawie danych z diagnozy społecznej -->
 
 
