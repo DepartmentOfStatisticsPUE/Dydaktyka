@@ -1,14 +1,18 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: 
+  html_notebook: 
+    number_sections: yes
+    toc: yes
 ---
 
 # Regresja logistyczna -- ocena modelu
 
-```{r}
-library(ResourceSelection)
-library(BaylorEdPsych)
-library(rms)
+```{r pakiety, message=FALSE, warning = FALSE}
+library(ResourceSelection) ## hoslem.test -- goodness of fit
+library(BaylorEdPsych) ## pseudo R^2
+library(car) ## Anova
+library(dplyr)
 ```
 
 ## Testowanie hipotez
@@ -57,7 +61,6 @@ W literaturze jest na ten temat spora dysuksja. Według niektórych warto skorzy
 
 ## Miary jakości modelu
 
-
 McFadden -- McFadden Pseudo-R^2 -- Nie jest to jednak współczynnik unormowany w przedziale [0, 1] a jego maksymalna wartość jest mniejsza od 1. Przyjmuje się przy tym, że wartości z przedziału 0,2-0,4 są w zupełności zadowalające.
 
 $$
@@ -82,32 +85,194 @@ $$
 R^2_N = 1 - \frac{1 - exp^{(-2/n (ln(L_M) - lm(L_0)))}}{1 - exp^{-2/nln(L_0)}}
 $$
 
-McKelvey.Zavoina	 -- McKelvey and Zavoina Pseudo-R^2
-Effron	 -- Effron Pseudo-R^2
-Count	 -- Count Pseudo-R^2, number of correctly classified cases, using $\hat{\pi}> .50$ as the cutoff
-Adj.Count	-- Adjusted Count Pseudo-R^2
+Pozostałe:
+
++ McKelvey.Zavoina	-- McKelvey and Zavoina Pseudo-R^2
++ Effron	 -- Effron Pseudo-R^2
++ Count	 -- Count Pseudo-R^2, number of correctly classified cases, using $\hat{\pi}> .50$ as the cutoff
++ Adj.Count	-- Adjusted Count Pseudo-R^2
 
 
-## Przykład z pakietem `rms`
+### The Hosmer-Lemeshow test
+
+Statystyka Hosmera-Lemeshow'a jakości dopasowania dana jest:
+
+
+$$
+H=\sum_{g=1}^{G}
+\left\{
+\frac{(O_{1g}-E_{1g})^{2}}{E_{1g}}+
+\frac{(O_{0g}-E_{0g})^{2}}{E_{0g}}
+\right\}
+=\sum_{g=1}^{G}
+\left\{
+\frac {(O_{1g}-E_{1g})^{2}}{N_{g}\pi _{g}}+
+\frac {(N_{g}-O_{1g}-(N_{g}-E_{1g}))^{2}}{N_{g}(1-\pi _{g})}
+\right\}
+=
+\sum _{g=1}^{G}
+\frac {(O_{1g}-E_{1g})^{2}}{N_{g}\pi_{g}(1-\pi _{g})} \sim \chi^2_{G-2}
+$$
+
+gdzie: $O_{1g}$ to wartości obserwowane dla $Y=1$, $E_{1g}$ to wartości oczekiwane dla $Y=1$, $O_{0g}$ to wartości obserwowane dla $Y=0$, $E_{0g}$ to wartości oczekiwane dla $Y=0$, $N_{g}$ to liczba obserwacji oraz $\pi_{g}$ jest oszacowaniem ryzyka w $g$-tym decylu, a $G$ to liczba grup.
+
+Procedura jest następująca:
+
+1. obliczamy prawdopodobieństwo sukcesu dla wszystkich obserwacji,
+2. sortujemy według prawdopodobieństwa od najmniejszych do największych
+3. dzielimy na $G$ precentyli (decyli)
+4. tworzymy tabelę wartości obserwowanych i oczekiwanych
+5. obliczamy wartość statystyki HM
+6. obliczamy p-value
+
+
+### Kryteria informacyjne
+
+AIC, BIC, AICc, cAIC i inne (im mniejsze tym lepsze) -- ale trzeba uważać.
+
+### Dobór zmiennych
+
+Pakiet `boruta`, `glmulti`, czy `MuMIn`, LASSO `glmnet`
+
+## Przykład 
+
+### Wczytanie danych
 
 ```{r}
 load('../data/diagnoza2015.rdata')
-diagnoza2015$internet_model <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015$internet <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015$bezrob <- ifelse(diagnoza2015$czy_rej_pup==1,1,0)
+
+## nadajemy etykiety
+
+diagnoza2015$plec <- factor(
+  x = diagnoza2015$plec,
+  levels = 1:2,
+  labels = c('Mezczyzna','Kobieta'),
+  ordered = FALSE
+)
+
+diagnoza2015$klm <- factor(
+  x = diagnoza2015$klm,
+  levels = 1:6,
+  labels = c('500k+', '200k-500k','100k-200k', '20k-100k','ponizej 20k', 'wies'),
+  ordered = FALSE
+)
+
+diagnoza2015$klm <- relevel(diagnoza2015$klm,ref = 'wies')
+
+diagnoza2015$woj <- factor(
+  x = diagnoza2015$woj,
+  levels = seq(2,32,2),
+  labels = c(
+    'Dolnośląskie','Kujawsko-Pomorskie',
+    'Lubelskie','Lubuskie','Łódzkie',
+    'Małopolskie','Mazowieckie','Opolskie','Podkarpackie',
+    'Podlaskie','Pomorskie','Śląskie',
+    'Świętokrzyskie','Warmińsko-Mazurskie',
+    'Wielkopolskie','Zachodniopomorskie'),
+  ordered = FALSE)
+
 diagnoza2015
 ```
 
+## Modelowanie
+
+### Pierwszy model z wykorzystaniem funkcji `glm`
+
 ```{r}
-model1 <- glm(internet_model ~ factor(woj), data = diagnoza2015, family = binomial())
-model2 <- glm(internet_model ~ factor(woj) + plec, data = diagnoza2015, family = binomial())
-anova(model1, model2, test = 'Chisq') ## LRT
+model1 <- glm(internet ~ woj + klm + plec, data = diagnoza2015, family = binomial())
+summary(model1)
+```
+
+### Drugi model, dodajemy wiek
+
+```{r}
+model2 <- update(model1, .~. + wiek)
+summary(model2)
+```
+
+### Trzeci model -- dodajemy interakcję między KLM a płcią
+
+```{r}
+model3 <- update(model2, .~. + klm:plec)
+summary(model3)
+```
+
+### Porównamy istotność całych zmiennych -- czy poprawiają? 
+
+Najpierw Anova typ I
+```{r}
+## ANOVA -- typ I
+anova(model1, test = 'Chisq')
+anova(model2, test = 'Chisq')
+anova(model3, test = 'Chisq')
+```
+
+Teraz zobaczmy na anovę typu II i III
+
+```{r}
+Anova(model1, type = 'II')
+Anova(model2, type = 'II')
+Anova(model3, type = 'II')
+```
+
+I na końcu Anova typ 3 -- jedynie ma sens w przypadku modelu z interakcjami, tu zobaczymy różnicę
+
+```{r}
+Anova(model3, type = 'III')
 ```
 
 
 ```{r}
-ResourceSelection::CAIC(model1,model2)
+anova(model1, model2, model3, test = 'LRT')
 ```
 
+## Jakość modelu
+
+### Test Hosmera and Lemeshow'a
+
 ```{r}
-sapply(list(model1,model2),BaylorEdPsych::PseudoR2)
+hoslem.test(diagnoza2015$internet, fitted(model1), g = 10)
+hoslem.test(diagnoza2015$internet, fitted(model2), g = 10)
+hoslem.test(diagnoza2015$internet, fitted(model3), g = 10)
 ```
+
+### Miary PseudoR2
+
+```{r}
+wynik <- sapply(list(model1,model2,model3), PseudoR2)
+rownames(wynik)
+wynik['Nagelkerke',]
+wynik['Corrected.AIC',]
+```
+
+## Uwaga -- interakcje z poziomami, których nie ma
+
+Rozważmy model
+
+```{r}
+m1 <- glm(internet ~ woj*klm, data = diagnoza2015, family = binomial())
+summary(m1)
+```
+
+Pojawiają się dziwne wartości
+
+```
+wojOpolskie:klm500k+                         NA         NA      NA       NA    
+wojPodkarpackie:klm500k+                     NA         NA      NA       NA    
+wojPodlaskie:klm500k+                        NA         NA      NA       NA    
+wojPomorskie:klm500k+                        NA         NA      NA       NA    
+wojŚląskie:klm500k+                          NA         NA      NA       NA    
+wojŚwiętokrzyskie:klm500k+                   NA         NA      NA       NA    
+wojWarmińsko-Mazurskie:klm500k+              NA         NA      NA       NA 
+```
+
+Dlaczego? Dla niektórych kategorii mamy zera.
+
+```{r}
+xtabs(~woj + klm, diagnoza2015)
+```
+
+
 

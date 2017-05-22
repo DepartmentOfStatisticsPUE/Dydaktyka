@@ -79,3 +79,12 @@ lmtest::raintest(trans_dwelling_price ~ trans_dwelling_floor_area + I(trans_dwel
                 data = rema)
 ```
 
+## Test for outliers (based on rstudent)
+
+Reports the Bonferroni p-values for Studentized residuals in linear and generalized linear models, based on a t-test for linear models and normal-distribution test for generalized linear models.
+
+
+```{r}
+outlierTest(m1, n.max = Inf) ## all outliers 
+```
+
