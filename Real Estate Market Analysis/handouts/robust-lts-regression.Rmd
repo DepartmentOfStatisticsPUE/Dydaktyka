@@ -10,7 +10,7 @@ Based on https://socserv.socsci.mcmaster.ca/jfox/Books/Companion/appendix/Append
 
 ## M-Estimation
 
-The most common general method of robust regression is M-estimation, introduced by Huber (1964). This class of estimators can be regarded as a generalization of maximum-likelihood estimation, hence the "M".
+The most common general method of robust regression is M-estimation, introduced by Huber (1964). This class of estimators can be regarded as a generalization of maximum-likelihood estimation, hence the "M". Although M estimators are not robust with respect to leverage points, they are popular in applications where leverage points are not an issue.
 
 We consider only the linear model 
 
@@ -71,9 +71,14 @@ Steps 2 and 3 are repeated until the estimated coefficients converge.
 
 ![objective functions](m-functions.png)
 
+Inne funkcje -- http://support.sas.com/documentation/cdl/en/statug/68162/HTML/default/viewer.htm#statug_rreg_details01.htm#statug.rreg.robustregfweightfunction
+
+
 # Bounded-Influence Regression
 
-Under certain circumstances, M-estimators can be vulnerable to high-leverage observations. Very- high-breakdown bounded-influence estimators for regression have been proposed.
+Under certain circumstances, M-estimators can be vulnerable to high-leverage observations. Very- high-breakdown bounded-influence estimators for regression have been proposed. 
+
+The breakdown value of an estimator is the smallest contamination fraction of the data that can cause the estimates on the entire data to be arbitrarily far from the estimates on only the uncontaminated data. The breakdown value of an estimator can be used to measure the robustness of the estimator. Rousseeuw and Leroy (1987) and others introduced the following high breakdown value estimators for linear regression.
 
 One bounded-influence estimator is least-trimmed squares (LTS) regression. Order the squared residuals from smallest to largest
 
@@ -90,7 +95,23 @@ where typicaly $m = \lfloor n/2 \rfloor + \lfloor (k+2)/2 \rfloor$. While the LT
 
 One application of bounded-influence estimators is to provide starting values for M -estimation. This procedure, along with using the bounded-influence estimate of the error variance, produces the so-called MM-estimator. The MM -estimator retains the high breakdown point of the bounded- influence estimator and shares the relatively high efficiency under normality of the traditional M -estimator. MM -estimators are especially attractive when paired with redescending 𝜓-functions such as the bisquare, which can be sensitive to starting values.
 
+## Methods available in R packages
+
++ MASS::lqs, method:
+    + lts, 
+    + lqs,
+    + lms, 
+    + S
+
 # Example
+
+Packages
+
+```{r}
+library(MASS)
+library(robust)
+library(robustbase)
+```
 
 Functions:
 
@@ -109,6 +130,7 @@ rema
 ```{r}
 model1 <- lm(trans_dwelling_price ~ trans_dwelling_floor_area, data = rema)
 summary(model1)
+qqnorm(model1$residuals)
 ```
 
 ## Robust LM: M-estimation approach
@@ -119,7 +141,7 @@ summary(model2)
 ```
 
 ```{r}
-hist(model2$w)
+qqnorm(model2$w) ## the weights used in the IWLS process
 ```
 
 ```{r}
@@ -141,25 +163,31 @@ summary(model3)
 
 
 ```{r}
-model3 <- robust::lmRob(trans_dwelling_price ~ trans_dwelling_floor_area,
-                        data = rema)
+qqnorm(model3$w) ## the weights used in the IWLS process
+```
+
+```{r}
+model3 <- lmRob(trans_dwelling_price ~ trans_dwelling_floor_area,
+              data = rema)
 summary(model3)
 ```
 
-`The ‘test for bias’ is of the M-estimator against the initial S-estimator; if the M-estimator appears biased the initial S-estimator is returned.
+The ‘test for bias’ is of the M-estimator against the initial S-estimator; if the M-estimator appears biased the initial S-estimator is returned.
 
-``{r}
-model4 <- robustbase::lmrob(trans_dwelling_price ~ trans_dwelling_floor_area,
-                            data = rema)
+```{r}
+model4 <- lmrob(trans_dwelling_price ~ trans_dwelling_floor_area,
+                data = rema)
 summary(model4)
+qqnorm(model4$rweights)
 ```
 
 
 ## ltsReg
+
 ```{r}
 model5 <- robustbase::ltsReg(trans_dwelling_price ~ trans_dwelling_floor_area,
                             data = rema)
 summary(model5)
 ```
 
-`
+
