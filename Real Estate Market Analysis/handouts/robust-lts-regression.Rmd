@@ -1,6 +1,9 @@
 ---
 title: "Robust and resistance regression"
-output: html_notebook
+output: 
+  html_notebook: 
+    number_sections: yes
+    toc: yes
 ---
 
 
@@ -93,7 +96,10 @@ LTS(\boldsymbol{b}) = \sum_{i=1}^m(e^2)_{(i)},
 $$
 where typicaly $m = \lfloor n/2 \rfloor + \lfloor (k+2)/2 \rfloor$. While the LTS criterion is easily described, the mechanics of fitting the LTS estimator are complicated. Moreover, bounded-influence estimators can produce unreasonable results in certain circumstances and there is no simple formula for coefficient standard errors.
 
-One application of bounded-influence estimators is to provide starting values for M -estimation. This procedure, along with using the bounded-influence estimate of the error variance, produces the so-called MM-estimator. The MM -estimator retains the high breakdown point of the bounded- influence estimator and shares the relatively high efficiency under normality of the traditional M -estimator. MM -estimators are especially attractive when paired with redescending 𝜓-functions such as the bisquare, which can be sensitive to starting values.
+## MM-Estimation
+
+One application of bounded-influence estimators is to provide starting values for M-estimation. This procedure, along with using the bounded-influence estimate of the error variance, produces the so-called MM-estimator. The MM -estimator retains the high breakdown point of the bounded- influence estimator and shares the relatively high efficiency under normality of the traditional M -estimator. MM -estimators are especially attractive when paired with redescending 𝜓-functions such as the bisquare, which can be sensitive to starting values.
+
 
 ## Methods available in R packages
 
