@@ -65,7 +65,7 @@ dane_wejsciowe <- bkl_lud %>%
          wiek, wykszt_5k, m3_6_uczy, m4_cywil, m5_dzieci, 
          eduk_lata, m3_1_staz, m7_1, m8_1,m11_internet:m11_4, 
          m3_1_pel) %>%
-  mutate(m3_1_pel = ifelse(m11_internet == 1, NA, m3_1_pel))
+  mutate(m3_1_pel = ifelse(m11_internet == 0, NA, m3_1_pel))
 
 sjPlot::view_df(x = dane_wejsciowe[,-c(1:3)],
                 show.values = T, 

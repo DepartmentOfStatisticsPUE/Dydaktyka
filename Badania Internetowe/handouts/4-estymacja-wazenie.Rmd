@@ -1,0 +1,339 @@
+---
+title: "Wykorzystanie modelu skłonności do odpowiedzi i ważenia danych"
+output: 
+  html_notebook: 
+    number_sections: yes
+    toc: yes
+---
+
+# Procedura estymacji -- modelowanie $R_i$ oraz ważenie danych
+
+## Model skłonności do odpowiedzi 
+
+W naszym przypadku odpowiedzieli jedynie internauci, co oznacza, że model skłonności do odpowiedzi jest jednocześnie modelem korekty pokrycia
+
+$$
+P(I_i=1 | \boldsymbol{X}_i) = P(R_i=1 | \boldsymbol{X}_i, I_i=1) = \rho_i
+$$
+
+## Ważenie danych
+
+Niestety, w momencie kiedy użyjemy te wagi wielkosci populacji nie będą się zgadzały w odpowiednich przekrojach
+
+$$
+\sum_{i=1}^{n_r} \rho_i \neq N,
+$$
+gdzie $N$ to wielkość populacji. Tym bardziej widoczne to będzie w przypadku podpopulacji np. kobiet czy mężczyzn. Dlatego należy przeprowadzić odpowiednie korekty $\rho_i$, tak aby uzyskać nowe wagi $d_i$, które użyjemy do ważenia naszej próby.
+
+Możemy do tego wykorzystać:
+
++ post-stratyfikację -> oszacowanie średniej i przeważenie przez,
++ kalibrację -> waga dla każdej jednostki oddzielnie **to dziś zrobimy**.
+
+
+# Przykład empiryczny
+
+## Wczytanie danych 
+
+Wczytujemy, tworzymy nowe zmienne, nadajemy etykiety i ograniczamy do ograniczamy dane tylko do osób w wieku 15-59 lat i pracujacych
+
+```{r}
+load('../data/diagnoza2015.rdata')
+diagnoza2015$internet <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015$praca <- ifelse(diagnoza2015$czy_praca == 1,1,0)
+
+## nadajemy etykiety
+diagnoza2015$plec <- factor(
+  x = diagnoza2015$plec,
+  levels = 1:2,
+  labels = c('Mezczyzna','Kobieta'),
+  ordered = FALSE
+)
+
+diagnoza2015$klm <- factor(
+  x = diagnoza2015$klm,
+  levels = 1:6,
+  labels = c('500k+', '200k-500k','100k-200k', '20k-100k','ponizej 20k', 'wies'),
+  ordered = FALSE
+)
+
+diagnoza2015$woj <- factor(
+  x = diagnoza2015$woj,
+  levels = seq(2,32,2),
+  labels = c(
+    'Dolnośląskie','Kujawsko-Pomorskie',
+    'Lubelskie','Lubuskie','Łódzkie',
+    'Małopolskie','Mazowieckie','Opolskie','Podkarpackie',
+    'Podlaskie','Pomorskie','Śląskie',
+    'Świętokrzyskie','Warmińsko-Mazurskie',
+    'Wielkopolskie','Zachodniopomorskie'),
+  ordered = FALSE)
+
+diagnoza2015$klm <- relevel(diagnoza2015$klm,ref = 'wies')
+diagnoza2015 <- subset(diagnoza2015, wiek <= 59 & praca == 1) ## ograniczamy dane tylko do osób w wieku 15-59 lat i pracujacych
+diagnoza2015
+```
+
+## Budujemy model
+
+Budujemy następujący model, którym objaśniamy dostęp do internetu (oczywiscie należałoby go dokładnie sprawdzić!!!!!!)
+
+$$
+P(I_i = 1 | plec_i + wiek_i + klm_i + dzieci_i + woj_i), 
+$$
+gdzie $plec_i$ to płeć respondenta, $wiek_i$ wiek respondenta, $klm_i$ klasa wielkości miejscowości, $dzieci_i$ czy posiada dzieci, $woj_i$ to województwo zamieszkania.
+
+```{r}
+model <- glm(internet ~ plec + wiek + klm + dzieci + woj,
+             data = diagnoza2015,
+             family = binomial())
+summary(model)
+car::Anova(model,type = 2)
+```
+
+Sprawdzamy jaki rozkład ma $\hat{\boldsymbol{\rho}}$ z wykorzystaniem funkcji `hist`.
+
+```{r}
+hist(fitted(model), main = 'Rozkład rho', xlab = expression(hat(rho)))
+```
+
+## Wczytujemy dane dotyczące wielkości populacji 
+
+Wczytujemy dane o populacji -- wykorzystujemy je do ważenia
+
+```{r}
+populacja <- readxl::read_excel('../data-raw/populacja_2015.xlsx', sheet = 2)
+populacja <- populacja[,c('Wiek','Płeć','Wartosc')]
+populacja
+```
+
+Jaka jest wielkość populacji? N=`r sum(populacja[populacja$Płeć=='ogółem','Wartosc'])/10000` $\times$ 10 tys. 
+
+## Kalibracja 
+
+Teraz musimy dopisać odpowiednie wagi dla respondentów ze względu na płeć oraz wiek. Co musimy zrobić?
+
+```{r}
+table(populacja$Wiek)
+```
+
+ 
+```{r}
+table(diagnoza2015$wiek) ## wiek mamy niepogrupowany
+```
+
+Dokonujemy kategoryzacji zmiennej z użyciem funkcji `cut`
+
+```{r}
+diagnoza2015$wiek_grupy <- cut(x = diagnoza2015$wiek,
+                               breaks = seq(15,60,by = 5), ## wartości graniczne
+                               include.lowest = TRUE, ## czy ma być zamkniety z dołu
+                               labels = c('15-19', '20-24', 
+                                          '25-29', '30-34', '35-39',
+                                          '40-44', '45-49', '50-54', '55-59'), ## przedziały
+                               right = FALSE) ## czy ma być zamknięty z góry (prawa strona)
+diagnoza2015$wiek_grupy <- as.character(diagnoza2015$wiek_grupy) ## zamieniamy na character
+table(diagnoza2015$wiek_grupy)
+```
+
+Dla łatwiejszego łączenia inaczej zapisujemy płeć
+
+```{r}
+diagnoza2015$plec_grupa <- ifelse(diagnoza2015$plec == 'Kobieta','k','m')
+table(diagnoza2015$plec_grupa)
+```
+
+
+```{r}
+populacja_wagi <- aggregate(Wartosc ~ Płeć + Wiek, 
+                            data = populacja, 
+                            FUN = sum,
+                            subset = Płeć != 'ogółem')
+colnames(populacja_wagi) <- c('plec','wiek','N_pop')
+populacja_wagi$plec <- ifelse(populacja_wagi$plec == 'kobiety','k','m')
+populacja_wagi
+```
+
+Łączymy dane
+
+```{r}
+do_estymacji <- merge(x = diagnoza2015,
+                      y = populacja_wagi,
+                      by.x = c('wiek_grupy','plec_grupa'),
+                      by.y = c('wiek','plec'),
+                      all.x = T)
+do_estymacji <- subset(do_estymacji, internet == 1)
+do_estymacji
+```
+
+Sprawdzamy czy wagi 
+
+```{r}
+proba_wielkosc <- aggregate(plec ~ wiek_grupy + plec_grupa,
+                       data = do_estymacji,
+                       FUN = length)
+names(proba_wielkosc)[3] <- 'n_proba'
+proba_wielkosc
+```
+
+Łączymy w jeden zbiór
+
+```{r}
+do_estymacji <- merge(do_estymacji, proba_wielkosc, all.x  = T)
+do_estymacji
+```
+
+Tworzymy wagę kalibracyjną
+
+$$
+w_{i,kal} = N_{d, pop} / n_{d, pop},
+$$
+
+gdzie $N_{d, pop}$ to wielkość populacji w danej domenie (u nas płeć i wiek), a  $n_{d, pop}$ to wielkość próby w tych domenach.
+
+```{r}
+do_estymacji$waga_kalibracja <- do_estymacji$N_pop/do_estymacji$n_proba
+do_estymacji
+```
+
+
+```{r}
+sum(do_estymacji$waga_kalibracja) == sum(populacja_wagi$N_pop)
+```
+
+Wagi sie zgadzają! Przy czym w ogóle jeszcze nie ruszyliśmy na podstawie $\hat{\rho}_i$ czyli $w_{i,\rho}$. 
+
+
+
+## Dodajemy do danych wagę na podstawie $\hat{\rho}$
+
+Przypisujemy $w_{i,\rho} = \hat{\rho}_i^{-1}$ do poszczególnych respondentów
+
+```{r}
+diagnoza2015$waga_rho <- 1/fitted(model)
+summary(diagnoza2015$waga_rho)
+
+## patrzymy jak wygląda waga według wieku respondenta...
+plot(diagnoza2015$wiek, diagnoza2015$waga_rho,
+     xlab = 'wiek',
+     ylab = 'waga_rho')
+```
+
+
+## Tworzymy nową wagę ostateczną
+
+Otrzymany wektor przemnażamy razy wagę, którą oznaczymy jako $\hat{d}_{i}$
+
+$$
+d_{i} = w_{i,\rho} \times w_{i,kal}
+$$
+
+```{r}
+do_estymacji$waga_rho <- diagnoza2015[diagnoza2015$internet == 1,]$waga_rho
+do_estymacji$waga_final <- do_estymacji$waga_rho * do_estymacji$waga_kalibracja 
+sum(do_estymacji$waga_final)
+sum(populacja_wagi$N_pop)
+```
+
+Nie zgadzają sie wartości, wystarczy, że je przeskalujemy zgodnie z tym wzorem
+
+$$
+d_{i}^* = d_{i} \times \frac{N}{\sum d_{i}},
+$$
+gdzie $N$ to wielkość populacji. Poniższy kod to robi
+
+
+```{r}
+do_estymacji$waga_final <- do_estymacji$waga_final * sum(do_estymacji$waga_kalibracja)/ sum(do_estymacji$waga_final)
+sum(do_estymacji$waga_final) ## wielkość populacji się zgadza 23 879 721
+```
+
+Zobaczmy jak wyglądają wagi po korekcie
+
+```{r}
+plot(do_estymacji$waga_kalibracja, 
+     do_estymacji$waga_final,
+     xlab = 'Waga kalibracyjna',
+     ylab = 'Waga finalna')
+```
+
+## Porównujemy oszacowania na podstawie wag
+
+Porównajmy oszacowania według dwóch metod...
+
+```{r}
+oszacowania <- aggregate(cbind(waga_kalibracja,waga_final) ~ czy_pelny_etat, do_estymacji, FUN = sum)
+prop.table(oszacowania$waga_kalibracja)*100
+prop.table(oszacowania$waga_final)*100
+```
+
+Które są bliżej prawdy? To już zadanie dla Państwa.
+
+### Czy zgadzają się wielkości populacji w domenach?
+
+```{r}
+aggregate(cbind(waga_kalibracja,waga_final) ~ plec_grupa, do_estymacji, FUN = sum)
+```
+
+```{r}
+aggregate(cbind(waga_kalibracja,waga_final) ~ wiek_grupy, do_estymacji, FUN = sum)
+```
+
+
+# Ogólna strategia
+
+1. Estymujemy model
+
+$$
+P(I_i=1 | \boldsymbol{X}_i) = P(R_i=1 | \boldsymbol{X}_i, I_i=1) = \rho_i
+$$
+
+2. Tworzymy wagę kalibracyjną (post-stratyfikacyjną) na podstawie informacji o populacji
+
+$$
+w_{i,kal} = N_{d, pop} / n_{d, pop},
+$$
+
+
+3. Tworzymy wektor wag $w_{i,\rho}$ na podstawie $\hat{\rho}_i$
+
+$$
+w_{i,\rho} = \hat{\rho}_i^{-1}
+$$
+
+4. Tworzymy nową wagę
+
+$$
+d_{i} = w_{i,kal} \hat{\rho}_i^{-1} = w_{i,kal} w_{i,\rho} 
+$$
+5. Sprawdzamy czy zgadza się wielkość całej populacji i ją korygujemy
+
+$$
+d_{i}^* = d_{i} \times \frac{N}{\sum d_{i}},
+$$
+
+Uwaga: tutaj zapewniamy jedynie zgodność jeżeli chodzi o wielkość populacji, a nie wielkości domen (płeć, wiek). Jak sobie z tym poradzić? Można zastosować funkcję `laeken::calibWeights`, która pozwala na przeprowadzenie kalibracji (uogólnienie post-stratyfikacji).
+
+```{r}
+plec_wiek <- interaction(do_estymacji$plec_grupa,do_estymacji$wiek_grupy)
+Xs <- calibVars(plec_wiek)
+totals <- populacja_wagi$N_pop
+d <- do_estymacji$waga_final
+g <- calibWeights(X=Xs, d= d, totals = totals)
+summary(g)
+do_estymacji$waga_final_po_kal <- do_estymacji$waga_final*g
+
+```
+
+```{r}
+aggregate(cbind(waga_kalibracja,waga_final,waga_final_po_kal) ~ plec_grupa, do_estymacji, FUN = sum)
+```
+
+```{r}
+aggregate(cbind(waga_kalibracja,waga_final,waga_final_po_kal) ~ wiek_grupy, do_estymacji, FUN = sum)
+```
+
+```{r}
+oszacowania <- aggregate(cbind(waga_rho, waga_kalibracja,waga_final,waga_final_po_kal) ~ czy_pelny_etat, do_estymacji, FUN = sum)
+apply(oszacowania[,-1],2, prop.table)
+```
