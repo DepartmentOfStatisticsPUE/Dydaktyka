@@ -49,7 +49,6 @@ $$
 w_{i} = \frac{N_d}{n_{d}},
 $$
 
-
 gdzie $N_d$ to wielkość populacji w danej domenie, a $n_{d}$ to wielkość populacji w domenie. Domena to inaczej przekrój, który nas interensuje czy to ze względu na ważenie czy estymację. 
 
 ## Wykorzystanie pakietu survey
@@ -136,6 +135,10 @@ prop.table(pelny_etat_plec, margin = 2) ## udział pracujących na pełny etat w
 
 Dla przykładu wygeneruje pewne wagi wejściowe, które założymy, że są równe $1/\hat{\rho}$
 
+$$
+w_i^* = \frac{N_d}{\sum_{i=1}^{n_d} \hat{\rho}_i^{-1}}
+$$
+
 ```{r}
 set.seed(222)
 diagnoza2015$rho_waga <- rlnorm(n = nrow(diagnoza2015), meanlog = 1, sd = 0.2)
@@ -167,4 +170,15 @@ sprawdzamy czy wagi są ok!
 svytable(formula = ~wiek_grupy + plec_grupa, design = diagnoza_svy_final)
 pop_wiek_plec
 ```
+
+# Post-stratyfikacja z pakietem `survey` krok po kroku
+
+1. Estymujemy $\rho_i$ na podstawie modelu $P(I_i=1 | \boldsymbol{X}_i) = P(R_i=1 | \boldsymbol{X}_i, I_i=1)$ i przypisujemy wagi do obiektu nazwyając je np. `wagi_rho`. Wykorzystujemy do tego funkcję `fitted(model)`.
+2. Tworzymy nowy obiekt za pomocą funkcji `svydesign` deklarujac `ids=1`, `weights = ~ wagi_rho` oraz `data = dane`. 
+3. Tworzymy tabelę (najlepiej z funkcją `xtabs`), która zawierać będzie informacje o danych z populacji. **UWAGA: dane powinny mieć te same nazwy kolumn oraz te same warianty!!!**
+4. Wykorzystujemy funkcję `postStratify()` podając argumenty `design` = obiekt z punktu 2, `strata = ~zmienna1 + zmienna2 + ... + zmiennak` zmienne warstwujące (np. płeć, wiek, województwo), `population=dane_populacji` 
+5. Przypisujemy do danych wagi `dane$wagi_finalne <- weights(obiekt_z_punktu_4)`
+
+
+
 

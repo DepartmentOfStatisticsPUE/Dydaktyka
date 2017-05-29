@@ -280,7 +280,7 @@ aggregate(cbind(waga_kalibracja,waga_final) ~ wiek_grupy, do_estymacji, FUN = su
 ```
 
 
-# Ogólna strategia
+# Ogólna strategia dla krok po kroku
 
 1. Estymujemy model
 
