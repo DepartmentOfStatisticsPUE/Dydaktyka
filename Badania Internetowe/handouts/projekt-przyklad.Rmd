@@ -1,0 +1,150 @@
+---
+title: "Krok po kroku"
+output: 
+  html_notebook: 
+    number_sections: yes
+    toc: yes
+---
+
+# Wczytujemy dane i pakiety
+
+Dane z próby 
+
+```{r}
+load('../data/diagnoza2015.rdata')
+diagnoza2015$internet <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015$praca <- ifelse(diagnoza2015$czy_praca == 1,1,0)
+diagnoza2015$plec_grupa <- ifelse(diagnoza2015$plec == 1,'k','m')
+diagnoza2015$wiek_grupy <- cut(x = diagnoza2015$wiek,
+                               breaks = seq(15,60,by = 5), 
+                               include.lowest = TRUE, 
+                               labels = c('15-19', '20-24',  '25-29', '30-34', '35-39', '40-44', 
+                                          '45-49', '50-54', '55-59'), 
+                               right = FALSE) 
+diagnoza2015$wiek_grupy <- as.character(diagnoza2015$wiek_grupy) 
+
+## nadajemy etykiety
+diagnoza2015$plec <- factor(
+  x = diagnoza2015$plec,
+  levels = 1:2,
+  labels = c('Mezczyzna','Kobieta'),
+  ordered = FALSE
+)
+
+diagnoza2015$klm <- factor(
+  x = diagnoza2015$klm,
+  levels = 1:6,
+  labels = c('500k+', '200k-500k','100k-200k', '20k-100k','ponizej 20k', 'wies'),
+  ordered = FALSE
+)
+
+diagnoza2015$woj <- factor(
+  x = diagnoza2015$woj,
+  levels = seq(2,32,2),
+  labels = c(
+    'Dolnośląskie','Kujawsko-Pomorskie',
+    'Lubelskie','Lubuskie','Łódzkie',
+    'Małopolskie','Mazowieckie','Opolskie','Podkarpackie',
+    'Podlaskie','Pomorskie','Śląskie',
+    'Świętokrzyskie','Warmińsko-Mazurskie',
+    'Wielkopolskie','Zachodniopomorskie'),
+  ordered = FALSE)
+
+diagnoza2015$klm <- relevel(diagnoza2015$klm,ref = 'wies')
+diagnoza2015 <- subset(diagnoza2015, wiek <= 59 & praca == 1) ## ograniczamy dane tylko do osób w wieku 15-59 lat i pracujacych
+diagnoza2015
+```
+
+Wczytujemy dane o populacji
+
+```{r}
+populacja <- readxl::read_excel('../data-raw/populacja_2015.xlsx', sheet = 2)
+populacja <- populacja[,c('Wiek','Płeć','Nazwa','Wartosc')]
+populacja <- populacja[populacja$Płeć !='ogółem',]
+colnames(populacja) <- c('wiek_grupy','plec_grupa','woj','N_pop')
+populacja$plec_grupa <- ifelse(populacja$plec_grupa == 'kobiety','k','m')
+populacja
+```
+
+```{r}
+library(survey)
+library(dplyr)
+```
+
+
+# Wykonujemy modelowanie skłonności do odpowiedzi
+
+Oczywiście model powinniśmy zweryfikować, a nie tak sobie robić.
+
+```{r}
+model <- glm(internet ~ plec + wiek + klm + dzieci + woj,
+             data = diagnoza2015,
+             family = binomial())
+summary(model)
+```
+
+Przypisuję wagi do danych
+
+```{r}
+diagnoza2015$waga_rho <- 1/fitted(model)
+```
+
+W projekcie jedynie internauci brali udział w badaniu więc wyrzucam tych, którzy nie posiadali internetu.
+
+```{r}
+diagnoza2015 <- subset(diagnoza2015, filter = internet == 1)
+diagnoza2015
+```
+
+# Dokonujemy post-stratyfikacji
+
+W związku z tym, że wagi nie sumują się do wielkości populacji musimy dokonać ich korekty. Wykorzystamy jedynie informacje o wieku oraz płci.
+
+```{r}
+pop_wiek_plec <- xtabs(N_pop~wiek_grupy+plec_grupa,populacja)
+pop_wiek_plec
+```
+
+Tworzymy obiekt do `svydesign`, który wykorzystamy do ważenia danych
+
+```{r}
+wazenie <- svydesign(ids = ~1, 
+                     weights = ~ waga_rho,
+                     data = diagnoza2015)
+```
+
+
+Pamietając, że zmienne w `diag_survey` oraz `pop_wiek_plec` muszą mieć tę samą  
+
+```{r}
+wynik_plec_wiek <- postStratify(design = wazenie,
+                                strata = ~ wiek_grupy + plec_grupa,
+                                population = pop_wiek_plec)
+
+summary(wynik_plec_wiek) ## tak samo patrzymy na Probabilities
+```
+
+# Przeprowadzamy szacunki
+
+W pierwszej kolejności dopisujemy zmienną waga
+
+```{r}
+diagnoza2015$waga_final <- weights(wynik_plec_wiek)
+summary(diagnoza2015$waga_final)
+```
+
+Tworzymy zmienną 0-1 dla pracy w pełnym wymiarze godzin
+
+```{r}
+diagnoza2015$pelny_etat <- ifelse(diagnoza2015$czy_pelny_etat == 1, 1, 0)
+summary(diagnoza2015$pelny_etat)
+```
+
+Przeprowadzamy szacunki według płci oraz województw
+
+```{r}
+diagnoza2015 %>%
+  group_by(woj,plec_grupa) %>%
+  summarize(oszacowanie = weighted.mean(pelny_etat,waga_final))
+```
+
