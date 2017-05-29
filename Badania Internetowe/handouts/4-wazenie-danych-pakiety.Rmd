@@ -1,0 +1,170 @@
+---
+title: "R Notebook"
+output: 
+  html_notebook: 
+    number_sections: yes
+    toc: yes
+---
+
+# Wczytanie danych
+
+## Dane z badania i kategoryzacja zmiennych
+
+Wczytujemy dane, dodajemy nowe zmienne i następnie zbiór ograniczamy.
+
+```{r}
+load('../data/diagnoza2015.rdata')
+diagnoza2015$internet <- ifelse(diagnoza2015$internet == 1, 1, 0)
+diagnoza2015$praca <- ifelse(diagnoza2015$czy_praca == 1,1,0)
+diagnoza2015$plec_grupa <- ifelse(diagnoza2015$plec == 1,'k','m')
+diagnoza2015$wiek_grupy <- cut(x = diagnoza2015$wiek,
+                               breaks = seq(15,60,by = 5), 
+                               include.lowest = TRUE, 
+                               labels = c('15-19', '20-24',  '25-29', '30-34', '35-39', '40-44', 
+                                          '45-49', '50-54', '55-59'), 
+                               right = FALSE) 
+diagnoza2015$wiek_grupy <- as.character(diagnoza2015$wiek_grupy) 
+diagnoza2015 <- subset(diagnoza2015, wiek <= 59 & praca == 1) 
+diagnoza2015
+```
+
+## Dane dotyczące populacji
+
+```{r}
+populacja <- readxl::read_excel('../data-raw/populacja_2015.xlsx', sheet = 2)
+populacja <- populacja[,c('Wiek','Płeć','Nazwa','Wartosc')]
+colnames(populacja) <- c('wiek_grupy','plec_grupa','woj','N_pop')
+populacja$plec_grupa <- ifelse(populacja$plec_grupa == 'kobiety','k','m')
+populacja
+```
+
+
+# Post-stratyfikacja z pakietem `survey`
+
+## Post-stratyfikacja  krótkie przypomnienie
+
+Post-stratyfikacja oznacza, że do chcemy utworzyć w zbiorze wagi
+
+$$
+w_{i} = \frac{N_d}{n_{d}},
+$$
+
+
+gdzie $N_d$ to wielkość populacji w danej domenie, a $n_{d}$ to wielkość populacji w domenie. Domena to inaczej przekrój, który nas interensuje czy to ze względu na ważenie czy estymację. 
+
+## Wykorzystanie pakietu survey
+
+W pierwszej kolejności musimy utworzyć obiekt `svydesign`, który wskazuje, że dany obiekt (`data.frame`) pochodzi z badania reprezentacyjnego. W przypadku gdy nie dysponujemy wagami tworzymy obiekt w następujący sposób.
+
+
+```{r, message=FALSE, warning = FALSE}
+library(survey)
+diag_survey <- svydesign(ids = ~1, ## ids - zakładamy, że każdy rekord był losowany niezależnie (musi być)
+                         data = diagnoza2015) ## podajemy informacje o danych
+diag_survey
+```
+
+Aby dokonać post-stratyfikacji musimy najpiew stworzyć dane dotyczące populacji (w obiekcie typu `table`). 
+
+## Post-stratyfikacja dla wieku
+
+W pierwszej kolejności wykorzystujemy informacje o wielkosci populacji według grup wieku
+
+```{r}
+pop_wiek <- xtabs(N_pop~wiek_grupy,populacja)
+pop_wiek
+```
+
+Dokonujemy post-stratyfikacji z funkcją `postStratify`
+
+```{r}
+wynik <- postStratify(design = diag_survey, ## podajemy obiekt do post-stratyfikacji
+                      strata = ~wiek_grupy, ## wskazujemy według, której zmiennej post-stratyfikujemy
+                      population = pop_wiek) ## informacja o wielkosci populacji
+summary(wynik) ## Probabilities -- rozkład prawdopodobieństwa czyli n_d / N_d
+```
+
+Aby wyciągnąć wagi należy zastosować funkcję `weights` na danym obiekcie
+
+```{r}
+table(weights(wynik))
+```
+
+Sprawdźmy czy dostajemy do samo co w populacji
+
+```{r}
+svytable(formula = ~wiek_grupy, design = wynik)
+pop_wiek
+```
+
+## Post-stratyfikacja dla dwóch zmiennych
+
+Przeprowaźmy post-stratyfikację dla dwóch zmiennych jednocześnie -- mianowicie wykorzystamy do tego informacje o płci i województwie
+
+```{r}
+pop_wiek_plec <- xtabs(N_pop~wiek_grupy+plec_grupa,populacja)
+pop_wiek_plec
+```
+
+Pamietając, że zmienne w `diag_survey` oraz `pop_wiek_plec` muszą mieć tę samą  
+
+```{r}
+wynik_plec_wiek <- postStratify(design = diag_survey,
+                                strata = ~ wiek_grupy + plec_grupa,
+                                population = pop_wiek_plec)
+
+summary(wynik_plec_wiek) ## tak samo patrzymy na Probabilities
+```
+
+Następnie możemy te dane wyciągnać do nowego obiektu
+
+```{r}
+diagnoza2015$waga_post_strat <- weights(wynik_plec_wiek)
+table(diagnoza2015$waga_post_strat)
+```
+
+Teraz możemy wykorzystać te wagi do estymacji:
+
+```{r}
+pelny_etat_plec <- aggregate(waga_post_strat ~ czy_pelny_etat + plec, data = diagnoza2015, FUN = sum)
+pelny_etat_plec <- xtabs(waga_post_strat ~ czy_pelny_etat + plec, pelny_etat_plec)
+pelny_etat_plec
+prop.table(pelny_etat_plec, margin = 2) ## udział pracujących na pełny etat według płci
+```
+
+## Post-stratyfikacja ze skorygowaniem wag wejściowych
+
+Dla przykładu wygeneruje pewne wagi wejściowe, które założymy, że są równe $1/\hat{\rho}$
+
+```{r}
+set.seed(222)
+diagnoza2015$rho_waga <- rlnorm(n = nrow(diagnoza2015), meanlog = 1, sd = 0.2)
+summary(diagnoza2015$rho_waga)
+```
+
+Tworzymy obiekt
+
+```{r}
+diagnoza_svy <- svydesign(ids = ~ 1, ## ids - zakładamy, że każdy rekord był losowany niezależnie (musi być)
+                          weights = ~rho_waga,
+                          data = diagnoza2015) ## podajemy informacje o danych
+diagnoza_svy
+```
+
+a następnie post-stratyfikujemy
+
+```{r}
+diagnoza_svy_final <- postStratify(design = diagnoza_svy,
+                                   strata = ~ wiek_grupy + plec_grupa,
+                                   population = pop_wiek_plec)
+
+summary(diagnoza_svy_final) ## tak samo patrzymy na Probabilities
+```
+
+sprawdzamy czy wagi są ok!
+
+```{r}
+svytable(formula = ~wiek_grupy + plec_grupa, design = diagnoza_svy_final)
+pop_wiek_plec
+```
+
