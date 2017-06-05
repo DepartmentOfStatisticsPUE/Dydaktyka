@@ -1,0 +1,236 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Pakiety
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Przygotowanie danych
+
+Zbiór danych `apartments` z pakiety `PBImisc`
+
+```{r}
+data(apartments, package = 'PBImisc')
+```
+
+
+```{r}
+apartments %>%
+  filter(!is.na(n.rooms), !is.na(type), !is.na(condition)) %>%
+  select(year, surface, city, district, n.rooms, type, transaction.price, condition) %>% 
+  mutate(type = ifelse(type == 'hipoteczne', 'hipoteczne', 'spoldzielcze'),
+         condition = ifelse(condition == 'do wykonczenia', 'deweloperski', as.character(condition))) %>%
+  filter(condition !='deweloperski') %>%
+  rename(rok = year,
+         powierzchnia = surface,
+         miasto = city,
+         dzielnica = district,
+         liczba_pokoi = n.rooms,
+         typ = type, 
+         cena = transaction.price, 
+         stan = condition) -> zaliczenie 
+zaliczenie
+```
+
+
+```{r}
+rio::export(x = zaliczenie, file = '~/Documents/Uczelnia/Dydaktyka/Statystyka Opisowa/zaliczenie.xlsx')
+```
+
+## Zadania
+
+```{r}
+zaliczenie %>%
+  group_by(stan)  %>%
+  do(cor = cor(.$powierzchnia,.$cena)) %>%
+  unnest(cor)
+```
+
+### Miary klasyczne
+
+Kurtoza w pakiecie `psych`
+
+Type 1 finds skewness and kurtosis by 
+
+$$
+g_1 = m_3/(m_2)^{3/2}, 
+$$
+
+
+$$
+g_2 = m_4/(m_2)^2 -3.
+$$
+
+Type 2 is
+
+$$
+G1 = g1 * \sqrt{n(n-1)}/(n-2)
+$$
+
+$$
+G2 = (n-1)[(n+1)g2 +6]/((n-2)(n-3)).
+$$
+
+Type 3 is 
+
+$$
+b1 = [(n-1)/n]^{3/2} m_3/m_2^{3/2}
+$$
+
+$$
+b2 = [(n-1)/n]^{3/2} m_4/m_2^2).
+$$
+
+
+Dla ceny
+
+```{r}
+psych::describe(zaliczenie$cena, quant = c(.25,.5,.75))
+```
+
+Dla powierzchni
+
+```{r}
+psych::describe(zaliczenie$powierzchnia, quant = c(.25,.5,.75))
+```
+
+Według typu
+
+```{r}
+psych::describeBy(zaliczenie$cena,
+                  zaliczenie$rok,
+                  quant = c(.25,.5,.75))
+```
+
+```{r}
+psych::describeBy(zaliczenie$powierzchnia,
+                  zaliczenie$rok,
+                  quant = c(.25,.5,.75))
+```
+
+Według typu
+
+```{r}
+psych::describeBy(zaliczenie$cena,
+                  zaliczenie$typ,
+                  quant = c(.25,.5,.75))
+```
+
+```{r}
+psych::describeBy(zaliczenie$cena,
+                  zaliczenie$typ,
+                  quant = c(.25,.5,.75))
+```
+
+Według stanu
+
+```{r}
+psych::describeBy(zaliczenie$cena,
+                  zaliczenie$stan,
+                  quant = c(.25,.5,.75))
+```
+
+```{r}
+psych::describeBy(zaliczenie$cena,
+                  zaliczenie$stan,
+                  quant = c(.25,.5,.75))
+```
+
+
+
+### Korelacje cech jakościowych
+
+Pakiety
+```{r}
+install.packages('http://smarterpoland.pl/materialy/KTr/CressieReadTest_1.0.tar.gz',
+                 repos = NULL,
+                 type = 'source')
+library(CressieReadTest)
+```
+
+Dla wszystkich V-cramer i T-Czuprow
+
+```{r}
+xtabs(~typ + stan, zaliczenie) %>% assocstats()
+```
+
+```{r}
+zaliczenie %>%
+  group_by(rok) %>%
+  do(tab = assocstats(xtabs(~typ + stan, .)))  %>%
+  .$tab
+```
+
+### Korelacje cech ilościowych
+
+```{r}
+cor(zaliczenie$powierzchnia,zaliczenie$cena, m = 'p')
+```
+
+Według lat
+
+```{r}
+zaliczenie %>%
+  group_by(rok) %>%
+  do(cor = cor(.$powierzchnia, .$cena, m = 'p')) %>%
+  unnest(cor)
+```
+
+Według typu
+
+```{r}
+zaliczenie %>%
+  group_by(typ) %>%
+  do(cor = cor(.$powierzchnia, .$cena, m = 'p')) %>%
+  unnest(cor)
+```
+Według stanu
+
+```{r}
+zaliczenie %>%
+  group_by(stan) %>%
+  do(cor = cor(.$powierzchnia, .$cena, m = 'p')) %>%
+  unnest(cor)
+```
+
+### Regresja
+
+Dla wszystkich
+
+```{r}
+summary(lm(cena ~ powierzchnia , data = zaliczenie))
+```
+
+Według lat
+
+```{r}
+zaliczenie %>%
+  group_by(rok) %>%
+  do(model = summary(lm(cena ~ powierzchnia, data = .))) %>%
+  .$model 
+```
+
+Według typu
+
+```{r}
+zaliczenie %>%
+  group_by(typ) %>%
+  do(model = summary(lm(cena ~ powierzchnia, data = .))) %>%
+  .$model 
+```
+
+Według stanu
+
+```{r}
+zaliczenie %>%
+  group_by(stan) %>%
+  do(model = summary(lm(cena ~ powierzchnia , data = .))) %>%
+  .$model 
+```
+
+

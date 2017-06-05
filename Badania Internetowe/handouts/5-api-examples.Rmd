@@ -1,0 +1,125 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(jsonlite) ## do wczytania danych z json
+library(xml2) ## do wczytania danychz XML
+library(tidyr) ## przydatne funkcje do pracy z listami
+```
+
+
+# Przykład Zalando API
+
+```{r}
+url <- 'https://api.zalando.com/articles'
+doc <- fromJSON(url)
+str(doc,1)
+```
+
+```{r}
+str(doc$content,1)
+```
+
+
+```{r}
+doc$content[,1:9]
+```
+
+```{r}
+doc$content[,c('id','genders')] %>%
+  unnest(genders)
+```
+
+Kolejna strona
+
+```{r}
+url <- 'https://api.zalando.com/articles?page=2'
+doc <- fromJSON(url)
+str(doc,1)
+```
+
+
+Ograniczenie wyszukania
+
+```{r}
+url <- 'https://api.zalando.com/articles?page=2&pageSize=100'
+doc <- fromJSON(url)
+str(doc,1)
+```
+
+Tylko wybrane pola
+
+```{r}
+url <- 'https://api.zalando.com/articles?sort=popularity&fields=id,season,color,brand.name'
+doc <- fromJSON(url)
+str(doc,3)
+```
+
+
+# Przykład rowerów z NextBike
+
+```{r}
+nb_pzn <- 'http://nextbike.net/maps/nextbike-official.xml?city=192'
+doc <- read_xml(nb_pzn)
+doc
+```
+
+Miejsca z rowerami w Poznaniu
+
+```{r}
+xml_find_all(doc,'//place')
+```
+
+Miejsca gdzie są stacje z rowerami NextBike
+
+```{r}
+xml_find_all(doc,'//place') %>%
+  xml_attr('name')
+```
+
+Numery dostępnych rowerów
+
+```{r}
+xml_find_all(doc,'//place') %>%
+  xml_attr('bike_numbers')
+```
+
+Ile jest w tej chwili dostępnych rowerów
+
+```{r}
+xml_find_all(doc,'//place') %>%
+  xml_attr('bike_numbers') %>%
+  strsplit(., split = ',') %>%
+  unlist() %>%
+  unique() %>%
+  length()
+```
+
+Ile jest wolnych miejsc
+
+```{r}
+doc %>% 
+  xml_find_all('//place') %>%
+  xml_attr('free_racks')
+```
+
+
+```{r}
+doc %>% 
+  xml_find_all('//place') %>%
+  xml_attr('bikes')
+```
+
+
+```{r}
+doc %>% 
+  xml_find_all('//place') %>%
+  xml_attr('bike_racks')  %>%
+  as.numeric() %>% 
+  table() %>%
+  barplot()
+```
+
