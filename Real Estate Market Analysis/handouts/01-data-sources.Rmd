@@ -255,22 +255,20 @@ Source: [Real Estate Market Sales 2015](http://stat.gov.pl/en/topics/municipal-i
 
 # Real estate market sales -- Poland
 
-+ Basic statistics for 2015:
-    + total value 102,6 bilions PLN
-    + 412,5k transactions
++ Basic statistics for 2017:
+    + total value 102,2 bilions PLN
+    + 488,1k transactions
     
 
 + Transactions on real estate market in Poland
-    + premises (pol. lokale) -- 43.3%
-    + land properties (pol. nieruchomości gruntowe) -- 39.7%
-    + built-up properties (pol. nieruchomości zabudowane) -- 16.7%
-    + buildings (pol. budynki) -- 0.3%
+    + premises -- 48.3%
+    + built-up properties -- 16.6%
+    + land properties -- 34.8%
 
 + Value of transactions on real estate market in Poland
-    + premises -- 41.8%
-    + built-up properties -- 32.6%
-    + land properties -- 25.1%
-    + buildings -- 0.5%
+    + premises -- 49,0%
+    + built-up properties -- 29.4%
+    + land properties -- 21.6%
 
 
 # Real estate market sales -- Poland
@@ -317,14 +315,14 @@ knitr::include_graphics("images/sales-woj-value.png")
 
 # Real estate market sales -- Residential premesis
 
-+ Turnover form in 2015:
-    + Free market (91.0% -- #trans, 95.6% -- value)
-    + Sale without tender procedure (8.0% -- #trans, 3.9% -- value)
-    + Sale under tender procedure (1% -- #trans, 0.5% -- value)
++ Turnover form in 2017:
+    + Free market (93.1% -- #trans, 95.2% -- value)
+    + Sale without tender procedure (4.2% -- #trans, 2.0% -- value)
+    + Sale under tender procedure (2.7% -- #trans, 2.8% -- value)
 
-+ Market type in 2015:
-    + secondary market (61.9% -- #trans, 52.0% -- value)
-    + primary market (38.1% -- #trans, 48% -- value)
++ Market type in 2017:
+    + secondary market (62.9% -- #trans, 55% -- value)
+    + primary market (37.1% -- #trans, 45% -- value)
     
     
 
